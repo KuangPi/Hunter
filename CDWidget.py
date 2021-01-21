@@ -6,7 +6,6 @@
 
 from QtEasy import *
 from PyQt5.QtWidgets import *
-import CDLogic
 
 
 class CountDownWidget(Window):
@@ -23,10 +22,16 @@ class CountDownWidget(Window):
         # self.seperation_line =
         self.lcd_left_text = QLabel("You have")
         # todo time setting
-        self.lcd =QLCDNumber()
+        self.lcd =QLCDNumber(self)
         self.lcd_right_text = QLabel("Minutes Left")
         self.early_finished_button = Buttons("If you finished early, click me!", self)
         self.early_finished_button.set_button_name("Early finished button")
+
+        # lcd format setting
+        self.lcd.setDigitCount(8)
+        self.lcd.setMode(QLCDNumber.Dec)
+        self.lcd.setSegmentStyle(QLCDNumber.Flat)
+        self.lcd.setStyleSheet("border: 2px solid black; color: red; background: silver;")
 
         # Ui Layout
 
