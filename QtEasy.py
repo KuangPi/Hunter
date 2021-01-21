@@ -9,32 +9,10 @@ This script manipulates the GUI of the application. Using pyqt5 and creates all 
 """
 
 from PyQt5.QtCore import QThread, QCoreApplication
-from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget, QPushButton, QLabel, QDesktopWidget
+from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget, QPushButton, QLabel, QDesktopWidget, QMessageBox
 from PyQt5.QtGui import QIcon
 import time
 import sys
-
-
-"""
-The below lines are the one object that will be created if wish to draw GUI on screen. 
-"""
-
-
-class WidgetManager:
-    """
-    This objects manages all different widgets.
-    Draw them on the screen.
-    Receive operations and present the needed screen.
-    """
-    def __init__(self):
-        self.application = QApplication(sys.argv)
-        # todo Login
-        pass
-        # todo delete the test code below.
-        self.test_window = Window()
-        self.test_button = Buttons("Test", self.test_window)
-        self.test_window.show()
-        sys.exit(self.application.exec_())
 
 
 """
@@ -54,7 +32,15 @@ class Window(QWidget):
         # Centralize at the user's screen
         self.center()
 
-    def
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, 'Message',
+                                     "Are you sure to quit?", QMessageBox.Yes |
+                                     QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
     def center(self):
         qr = self.frameGeometry()
@@ -84,11 +70,12 @@ class Buttons(QPushButton):
     def click_event(self):
         """
         Rewrite this function to bind any event to this button.
+        When rewriting, simply build the attempted commands and it will run as needed.
         """
         print(f"{self} is clicked! ")
 
     def __str__(self):
-        return f"Button with{self.content}"
+        return f"Button with {self.content}"
 
 
 class ButtonQuit(Buttons):
@@ -96,7 +83,16 @@ class ButtonQuit(Buttons):
         super(ButtonQuit, self).__init__("Quit", window)
 
     def click_event(self):
-        return QCoreApplication.instance().quit
+        # todo Call the close event when quit.
+        # This is a temporary solution, which directly copies the code from close event.
+        reply = QMessageBox.question(self, 'Message',
+                                     "Are you sure to quit?", QMessageBox.Yes |
+                                     QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            QCoreApplication.instance().quit()
+        else:
+            pass
 
 
 if __name__ == '__main__':
