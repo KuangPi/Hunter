@@ -6,9 +6,9 @@
 
 
 # Import other scripts.
-from QtEasy import *
+import Manager
 
 
 if __name__ == '__main__':
-    manager = WidgetManager()
+    manager = Manager.Manager()
     print("Program Finished. This is the finished of the main function. ")
