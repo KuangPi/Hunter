@@ -16,7 +16,7 @@ import sys
 
 
 """
-The below lines are the basic inheritance of the Needed part of the PYQT5. 
+The below lines are the basic inheritance of the Needed part of the PyQt5. 
 """
 
 
@@ -73,6 +73,9 @@ class Buttons(QPushButton):
         When rewriting, simply build the attempted commands and it will run as needed.
         """
         print(f"{self} is clicked! ")
+
+    def set_button_name(self, new_name):
+        self.content = new_name
 
     def __str__(self):
         return f"Button with {self.content}"

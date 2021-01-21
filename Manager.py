@@ -5,6 +5,7 @@
 #  Vestibulum commodo. Ut rhoncus gravida arcu.
 
 from QtEasy import *
+from CDWidget import *
 from PyQt5.QtWidgets import QApplication
 import sys
 
@@ -21,11 +22,7 @@ class Manager:
         # todo Login
         pass
         # todo delete the test code below.
-        self.window = Window()
-
-        self.simple_button = Buttons("Test", self.window)
-        self.quit_button = ButtonQuit(self.window)
-        self.quit_button.setGeometry(200, 200, 200, 200)
+        self.window = CountDownWidget("Test")
 
         self.window.show()
         sys.exit(self.application.exec_())
