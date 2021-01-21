@@ -4,6 +4,11 @@
 #  Proin dapibus sapien vel ante. Aliquam erat volutpat. Pellentesque sagittis ligula eget metus.
 #  Vestibulum commodo. Ut rhoncus gravida arcu.
 
+"""
+CD stands for Count Down.
+The logic of a count down is so simple so it is wrote inside the widget scripts.
+"""
+
 from QtEasy import *
 from PyQt5.QtWidgets import *
 

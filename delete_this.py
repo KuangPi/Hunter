@@ -4,20 +4,20 @@
 """
 ZetCode PyQt5 tutorial
 
-This program shows a confirmation
-message box when we click on the close
-button of the application window.
+This program creates a menubar. The
+menubar has one menu with an exit action.
 
 Author: Jan Bodnar
 Website: zetcode.com
-Last edited: August 2017
+Last edited: January 2017
 """
 
 import sys
-from PyQt5.QtWidgets import QWidget, QMessageBox, QApplication
+from PyQt5.QtWidgets import QMainWindow, QAction, qApp, QApplication
+from PyQt5.QtGui import QIcon
 
 
-class Example(QWidget):
+class Example(QMainWindow):
 
     def __init__(self):
         super().__init__()
@@ -25,21 +25,20 @@ class Example(QWidget):
         self.initUI()
 
     def initUI(self):
+        exitAct = QAction(QIcon('exit.png'), '&Exit', self)
+        exitAct.setShortcut('Ctrl+Q')
+        exitAct.setStatusTip('Exit application')
+        exitAct.triggered.connect(qApp.quit)
 
-        self.setGeometry(300, 300, 250, 150)
-        self.setWindowTitle('Message box')
+        self.statusBar()
+
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(exitAct)
+
+        self.setGeometry(300, 300, 300, 200)
+        self.setWindowTitle('Simple menu')
         self.show()
-
-    def closeEvent(self, event):
-
-        reply = QMessageBox.question(self, 'Message',
-                                     "Are you sure to quit?", QMessageBox.Yes |
-                                     QMessageBox.No, QMessageBox.No)
-
-        if reply == QMessageBox.Yes:
-            event.accept()
-        else:
-            event.ignore()
 
 
 if __name__ == '__main__':
