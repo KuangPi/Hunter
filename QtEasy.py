@@ -65,7 +65,13 @@ class Buttons(QPushButton):
     def __init__(self, content, window):
         super(Buttons, self).__init__(content, window)
         self.content = content  # Please remember that this will not be update if the text on the button is changed.
-        self.clicked.connect(self.click_event)
+        self.connect_event()
+
+    def connect_event(self, click_event=None):
+        if click_event is None:
+            self.clicked.connect(self.click_event)
+        else:
+            self.clicked.connect(click_event)
 
     def click_event(self):
         """
