@@ -43,43 +43,43 @@ class Manager:
         self.application.window.setWindowTitle("CountDown")
 
         # Init Ui
-        self.application.window.name_of_mission_name = QLabel("Ongoing Mission: ")
-        self.application.window.mission_name = QLabel(str(mission_name))
+        name_of_mission_name = QLabel("Ongoing Mission: ")
+        mission_name = QLabel(str(mission_name))
         # self.seperation_line =
-        self.application.window.lcd_left_text = QLabel("You have")
+        lcd_left_text = QLabel("You have")
         # todo time setting
-        self.application.window.lcd = QLCDNumber(self.application.window)
-        self.application.window.lcd_right_text = QLabel("Minutes Left")
-        self.application.window.early_finished_button = Buttons("If you finished early, click me!",
+        lcd = QLCDNumber(self.application.window)
+        lcd_right_text = QLabel("Minutes Left")
+        early_finished_button = Buttons("If you finished early, click me!",
                                                                 self.application.window)
-        self.application.window.early_finished_button.set_button_name("Early finished button")
-        self.application.window.early_finished_button.connect_event(self.destroy)  # todo delete this test code. 
+        early_finished_button.set_button_name("Early finished button")
+        early_finished_button.connect_event(self.destroy)  # todo delete this test code.
 
         # lcd format setting
-        self.application.window.lcd.setDigitCount(8)
-        self.application.window.lcd.setMode(QLCDNumber.Dec)
-        self.application.window.lcd.setSegmentStyle(QLCDNumber.Flat)
-        self.application.window.lcd.setStyleSheet("border: 2px solid black; color: red; background: silver;")
+        lcd.setDigitCount(8)
+        lcd.setMode(QLCDNumber.Dec)
+        lcd.setSegmentStyle(QLCDNumber.Flat)
+        lcd.setStyleSheet("border: 2px solid black; color: red; background: silver;")
 
         # Ui Layout
 
         mission_hbox = QHBoxLayout()
         mission_hbox.addStretch(2)
-        mission_hbox.addWidget(self.application.window.name_of_mission_name)
+        mission_hbox.addWidget(name_of_mission_name)
         mission_hbox.addStretch(1)
-        mission_hbox.addWidget(self.application.window.mission_name)
+        mission_hbox.addWidget(mission_name)
         mission_hbox.addStretch(2)
 
         lcd_hbox = QHBoxLayout()
         lcd_hbox.addStretch(2)
-        lcd_hbox.addWidget(self.application.window.lcd_left_text)
-        lcd_hbox.addWidget(self.application.window.lcd)
-        lcd_hbox.addWidget(self.application.window.lcd_right_text)
+        lcd_hbox.addWidget(lcd_left_text)
+        lcd_hbox.addWidget(lcd)
+        lcd_hbox.addWidget(lcd_right_text)
         lcd_hbox.addStretch(2)
 
         early_finished_button_layout = QHBoxLayout()
         early_finished_button_layout.addStretch(2)
-        early_finished_button_layout.addWidget(self.application.window.early_finished_button)
+        early_finished_button_layout.addWidget(early_finished_button)
         early_finished_button_layout.addStretch(2)
 
         vbox = QVBoxLayout()
@@ -105,6 +105,7 @@ class Manager:
         self.application.window = Window()
         self.tag = WindowType.INIT
         self.application.window.show()
+
 
 
 if __name__ == "__main__":
