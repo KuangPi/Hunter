@@ -9,7 +9,8 @@ This script manipulates the GUI of the application. Using pyqt5 and creates all 
 """
 
 from PyQt5.QtCore import QThread, QCoreApplication
-from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget, QPushButton, QLabel, QDesktopWidget, QMessageBox
+from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget, \
+    QPushButton, QLabel, QDesktopWidget, QMessageBox, QLineEdit
 from PyQt5.QtGui import QIcon
 import time
 import sys
@@ -55,17 +56,22 @@ class Labels(QLabel):
     """
     def __init__(self, content="Blank"):
         super(Labels, self).__init__()
-        self.setText(f"{content}")
+        self.setText(str(content))
+
+    def reset_text(self, text, color="000000"):
+        self.setText(str(text))
+        self.setStyleSheet(f"color: #{color};")
+        self.update()
 
 
 class Buttons(QPushButton):
     """
     There are many buttons in this programs. All of them are child of this class.
     """
-    def __init__(self, content, window):
-        super(Buttons, self).__init__(content, window)
+    def __init__(self, content="Button", click_event=None):
+        super(Buttons, self).__init__(content)
         self.content = content  # Please remember that this will not be update if the text on the button is changed.
-        self.connect_event()
+        self.connect_event(click_event)
 
     def connect_event(self, click_event=None):
         if click_event is None:
@@ -88,8 +94,8 @@ class Buttons(QPushButton):
 
 
 class ButtonQuit(Buttons):
-    def __init__(self, window):
-        super(ButtonQuit, self).__init__("Quit", window)
+    def __init__(self):
+        super(ButtonQuit, self).__init__("Quit")
 
     def click_event(self):
         # todo Call the close event when quit.
@@ -102,6 +108,14 @@ class ButtonQuit(Buttons):
             QCoreApplication.instance().quit()
         else:
             pass
+
+
+class InputLine(QLineEdit):
+    """
+    Yet has no difference with QLineEdit, there will be.
+    """
+    def __init__(self):
+        super(InputLine, self).__init__()
 
 
 if __name__ == '__main__':
