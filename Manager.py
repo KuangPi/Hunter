@@ -5,10 +5,13 @@
 #  Vestibulum commodo. Ut rhoncus gravida arcu.
 
 from QtEasy import *
-from PyQt5.QtWidgets import QApplication, QLCDNumber
-import sys
 from DbEasy import *
 from constants import *
+
+from PyQt5.QtWidgets import QApplication, QLCDNumber, QMessageBox
+
+import sys
+import hashlib
 
 
 class Application:
@@ -32,7 +35,7 @@ class Manager:
     def __init__(self, application):
         self.tag = WindowType.INIT
         self.application = application
-        self.current_user = User(0, "DE", "DE")
+        self.current_user = User("None", "None")
         self.to_login()
 
     # Scene changing methods
@@ -40,6 +43,7 @@ class Manager:
         self.reset()
         self.application.window.setGeometry(300, 300, 400, 300)
         self.application.window.setWindowTitle("Hunter: Login")
+        self.application.window.tag_notification = Labels("Enter below to login or register")
         self.application.window.tag_username = Labels("Username:")
         self.application.window.tag_password = Labels("Password: ")
         self.application.window.tag_hintMessage = Labels("")
@@ -49,6 +53,11 @@ class Manager:
 
         self.application.window.button_login = Buttons("Login", self.button_event_login)
         self.application.window.button_register = Buttons("Register", self.button_event_register)
+
+        layout_top_notification = QHBoxLayout()
+        layout_top_notification.addStretch(1)
+        layout_top_notification.addWidget(self.application.window.tag_notification)
+        layout_top_notification.addStretch(1)
 
         layout_username = QHBoxLayout()
         layout_username.addStretch(1)
@@ -76,6 +85,8 @@ class Manager:
 
         layout_all = QVBoxLayout()
         layout_all.addStretch(2)
+        layout_all.addLayout(layout_top_notification)
+        layout_all.addStretch(1)
         layout_all.addLayout(layout_username)
         layout_all.addLayout(layout_password)
         layout_all.addLayout(layout_error_message)
@@ -172,55 +183,85 @@ class Manager:
         else:
             raise TypeError("The given parameter is in wrong type! ")
 
-    def set_current_user(self, _id, username, password):
-        self.current_user = User(_id, username, password)
+    def set_current_user(self, username, password):
+        self.current_user = User(username, password)
 
-    def set_login_message(self, is_correct):
+    def set_login_message(self, is_correct, is_login):
         # todo Generalize this method so that other error message could also use this.
-        if not is_correct:
-            self.application.window.tag_hintMessage.reset_text("Wrong Username or Password! ", "c02c38")  # red
+        if is_login:
+            if not is_correct:
+                self.application.window.tag_hintMessage.reset_text("Wrong Username or Password! ", "c02c38")  # red
+            else:
+                self.application.window.tag_hintMessage.reset_text(f"Welcome {self.current_user.get_username()}. "
+                                                                   f"Logging you in.", "248067")
         else:
-            self.application.window.tag_hintMessage.reset_text(f"Welcome {self.current_user.get_username()}. "
-                                                               f"Logging you in.")
+            if not is_correct:
+                self.application.window.tag_hintMessage.reset_text("Registration failed! "
+                                                                   "The username has already been taken! ", "c02c38")
+            else:
+                self.application.window.tag_hintMessage.reset_text("Registration succeeded! "
+                                                                   "Now press 'login' to login ", "248067")
 
     # Button Click event
     def button_event_login(self):
         if self.tag is WindowType.LOGIN:
             username = self.application.window.holder_username.text()
-            password = self.application.window.holder_password.text()
+            password = sha256(self.application.window.holder_password.text())
+            self.current_user = User(username, password)
             temp = search_in_database(username, "UserName", "Login")
-            if temp[0] is "NF" or password != temp[0][2]:
-                self.set_login_message(False)
+            if temp[0] is "NF" or password != temp[0][1]:
+                self.set_login_message(False, True)
             else:
-                self.set_current_user(temp[0][0], temp[0][1], temp[0][2])
-                self.set_login_message(True)
+                print(f"User '{username}' logging into the system...")
+                self.set_tag(WindowType.INIT)
+                self.set_login_message(True, True)
         else:
-            raise TabError("Wrong Page. button_event_check_login() should only be called when at register page! ")
+            print("Tried to call login event when shouldn't doing so! ")
 
     def button_event_register(self):
-        if self.tag is WindowType.LOGIN:
-            print("Register! ")
-            # todo check the unique of the username.
+        if self.tag is WindowType.LOGIN:  # Avoid cases in other page.
+            username = self.application.window.holder_username.text()
+            password = sha256(self.application.window.holder_password.text())
+            self.current_user = User(username, password)
+            reply = QMessageBox.question(self.application.window, 'Register check',
+                                         f"Are you sure to register with '{username}'as your username?",
+                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+            if reply == QMessageBox.Yes:
+                if search_in_database(username, "UserName", "Login") == ["NF"]:
+                    insert_into_database([username, password], "Login")
+                    self.set_login_message(True, False)
+                else:
+                    self.set_login_message(False, False)
+
         else:
-            raise TabError("Wrong Page. button_event_check_login() should only be called when at register page! ")
+            print("Tried to call login event when shouldn't doing so! ")
 
 
 class User:
-    def __init__(self, _id, username, password):
-        self.user_id = _id
+    def __init__(self, username, password):
         self.username = username
-        self.password = password
+        self.password = password  # Maybe incorrect before successfully logged in.
+        self.is_logged_in = False
 
     def get_username(self):
         return self.username
 
-    def get_id(self):
-        return self.user_id
+    def get_password(self):
+        return self.password  # The password get here is hashed version.
+
+    def logged_in(self):
+        # Called when login to the system. So that other information could be presetned.
+        self.is_logged_in = True
+        # todo update other information here.
 
 
 # Several Pure functions
 def pf_check_account(self, username):
     return not search_in_database(username, "UserName", "Login")[0] is "NF"
+
+
+def sha256(content):
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from enum import Enum
 
 
 class WindowType(Enum):
-    INIT = 0
+    INIT = 0  # Also used for the situation when changing window.
     LOGIN = 1
     MAIN = 2
     LOCK = 3
