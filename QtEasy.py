@@ -31,7 +31,7 @@ class Window(QWidget):
         # Size
         self.resize(1080, 720)
         # Centralize at the user's screen
-        self.setWindowIcon(QIcon('./images/hunter_logo.png'))
+        self.setWindowIcon(QIcon("./images/hunter_logo.png"))
         self.center()
         self.setStyleSheet("Window{background-color: black;}")
 

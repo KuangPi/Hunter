@@ -211,13 +211,17 @@ class MainWindow(Window):
         self.set_size(780, 720)
         self.sideWindow = SideWindow(self)
 
+        self.list_mission = list()
+
         self.mission1 = MissionButtons()
         self.mission2 = MissionButtons()
         self.mission_new = NewMissionButtons()
 
-        self.mission_board_buttons = FunctionalButtons(self.show_side_window)
-        self.store_button = FunctionalButtons()
-        self.settings_button = FunctionalButtons()
+        self.mission_board_buttons = FunctionalButtons("./images/mission_board_button.png",
+                                                       "./images/mission_board_button_pressed.png",
+                                                       self.show_side_window)
+        self.store_button = FunctionalButtons("./images/store_button.png", "./images/store_button_pressed.png")
+        self.settings_button = FunctionalButtons("./images/settings_button.png", "./images/settings_button_pressed.png")
 
         layout_missions = QHBoxLayout()
         layout_missions.addStretch(2)
@@ -260,6 +264,9 @@ class MainWindow(Window):
         else:
             event.ignore()
 
+    def load_mission(self):
+
+
 
 class SideWindow(Window):
     def __init__(self, owner):
@@ -278,15 +285,28 @@ class SideWindow(Window):
 
 
 class FunctionalButtons(Buttons):
-    def __init__(self, event=None):
-        super(FunctionalButtons, self).__init__("Functional Buttons", event)
+    def __init__(self, image_on, image_off, event=None):
+        super(FunctionalButtons, self).__init__("", event)
         self.set_size(100, 100)
+        self.image_on = image_on
+        self.image_off = image_off
+        self._released()  # This is a function for button event, but its function is suitable for init the button.
+
+        self.pressed.connect(self._pressed)
+        self.released.connect(self._released)
+
+    def _pressed(self):
+        self.setStyleSheet(f"QPushButton{{border-image: url({self.image_off})}}")
+
+    def _released(self):
+        self.setStyleSheet(f"QPushButton{{border-image: url({self.image_on})}}")
 
 
 class MissionButtons(Buttons):
     def __init__(self, mission_name="mission"):
         super(MissionButtons, self).__init__(mission_name)
-        self.setMinimumSize(200, 500)
+        self.setMinimumSize(200, 400)
+        search_in_database(mission_name, "")
 
 
 class NewMissionButtons(MissionButtons):

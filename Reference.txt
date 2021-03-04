@@ -1,0 +1,7 @@
+Images:
+    Main Window:
+    Functional Buttons:
+        1: studio4, http://www.easyicon.net/
+        2: responsive, http://www.responsive-it.com/
+        3: freebiesbug, http://freebiesbug.com/psd-freebies/stylicons-100-coloured-psd-icons/
+
