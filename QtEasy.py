@@ -8,7 +8,7 @@
 This script manipulates the GUI of the application. Using pyqt5 and creates all kinds application required.
 """
 
-from PyQt5.QtCore import QThread, QCoreApplication
+from PyQt5.QtCore import QThread, QCoreApplication, Qt
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget, \
     QPushButton, QLabel, QDesktopWidget, QMessageBox, QLineEdit
 from PyQt5.QtGui import QIcon
@@ -31,7 +31,9 @@ class Window(QWidget):
         # Size
         self.resize(1080, 720)
         # Centralize at the user's screen
+        self.setWindowIcon(QIcon('./images/hunter_logo.png'))
         self.center()
+        self.setStyleSheet("Window{background-color: black;}")
 
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Message',
@@ -49,6 +51,10 @@ class Window(QWidget):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
+    def set_size(self, width, height):
+        self.setMaximumSize(width, height)
+        self.setMinimumSize(width, height)
+
 
 class Labels(QLabel):
     """
@@ -57,6 +63,7 @@ class Labels(QLabel):
     def __init__(self, content="Blank"):
         super(Labels, self).__init__()
         self.setText(str(content))
+        self.setStyleSheet("Labels{color: white; font-size: x-large}")
 
     def reset_text(self, text, color="000000"):
         self.setText(str(text))
@@ -91,6 +98,10 @@ class Buttons(QPushButton):
 
     def __str__(self):
         return f"Button with {self.content}"
+
+    def set_size(self, width, height):
+        self.setMaximumSize(width, height)
+        self.setMinimumSize(width, height)
 
 
 class ButtonQuit(Buttons):
