@@ -44,7 +44,7 @@ class Manager:
         self.window.show()
 
     def to_main(self):
-        self.window = MainWindow()
+        self.window = MainWindow(self)
         self.set_tag(WindowType.MAIN)
         self.window.show()
 
@@ -205,13 +205,15 @@ class LoginWindow(Window):
 
 
 class MainWindow(Window):
-    def __init__(self):
+    def __init__(self, manager):
         super(MainWindow, self).__init__()
         self.setWindowTitle("Hunter: Mission Selection")
         self.set_size(780, 720)
         self.sideWindow = SideWindow(self)
 
+        self.manager = manager
         self.list_mission = list()
+        self.load_mission()
 
         self.mission1 = MissionButtons()
         self.mission2 = MissionButtons()
@@ -265,6 +267,19 @@ class MainWindow(Window):
             event.ignore()
 
     def load_mission(self):
+        temp = search_in_database(self.manager.get_user().get_username(), "BelongUserName", "Mission")
+        for elements in temp:
+            self.list_mission.append(Mission(elements))
+
+    def recommended_mission(self):
+        """
+        This method must be called after at least after one mission is created.
+        :return:
+        """
+        if len(self.list_mission) > 1:
+            pass
+        else:
+            pass
 
 
 
@@ -306,7 +321,6 @@ class MissionButtons(Buttons):
     def __init__(self, mission_name="mission"):
         super(MissionButtons, self).__init__(mission_name)
         self.setMinimumSize(200, 400)
-        search_in_database(mission_name, "")
 
 
 class NewMissionButtons(MissionButtons):
@@ -320,6 +334,9 @@ class User:
         self.other_information = []
         self.update_information(self.username)
 
+    def get_username(self):
+        return self.username
+
     def get_information(self, n):
         # Search in database for other records.
         return self.other_information[0:n]
@@ -328,9 +345,56 @@ class User:
         self.other_information.append(content)
 
 
+class Mission:
+    def __init__(self, information):
+        self.mission_id = information[0]
+        self.belong_user = information[1]
+        self.mission_name= information[2]
+        self.mission_ddl = information[3]
+        self.mission_duration = information[4]
+
+    def __str__(self):
+        return f"The mission {self.mission_name} has a deadline on {self.mission_ddl} and " \
+               f"will take you {self.mission_duration} * 25 min to finish it. "
+
+    def __repr__(self):
+        return self.__str__()
+
+
 def sha256(content):
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
+def find_2_largest(unsorted_list):
+    largest1 = - 100000
+    largest2 = - 100000
+    largest1_index = None
+    largest2_index = None
+
+    for i in range(len(unsorted_list)):
+        test = unsorted_list[i]
+        if test > largest1:
+            largest2 = largest1
+            largest2_index = largest1_index
+            largest1 = test
+            largest1_index = i
+        elif unsorted_list[i] > largest2:
+            largest2 = test
+            largest2_index = i
+    return largest1_index, largest2_index
+
+
+def quick_sort(unsorted_list):
+    pivot = unsorted_list[0]
+    for i in range(len(unsorted_list)):
+        if unsorted_list[i] < pivot:
+            temp = unsorted_list
+        else:  # Case of the same value is considered to be here
+            pass
+
+
 if __name__ == "__main__":
-    app = Application()
+    # app = Application()
+    a = [1, 2, 3, 4, 5]
+    b,c=find_2_largest(a)
+    print(a[b], a[c])
