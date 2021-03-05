@@ -215,38 +215,46 @@ class MainWindow(Window):
         self.list_mission = list()
         self.load_mission()
 
-        self.mission1 = MissionButtons()
-        self.mission2 = MissionButtons()
-        self.mission_new = NewMissionButtons()
+        self.missions = [MissionButtons(), MissionButtons(), NewMissionButtons()]
+        self.stores = [StoreButtons(), StoreButtons(), StoreButtons(), StoreButtons()]
+        self.store_mission(True)
 
         self.mission_board_buttons = FunctionalButtons("./images/mission_board_button.png",
                                                        "./images/mission_board_button_pressed.png",
                                                        self.show_side_window)
-        self.store_button = FunctionalButtons("./images/store_button.png", "./images/store_button_pressed.png")
-        self.settings_button = FunctionalButtons("./images/settings_button.png", "./images/settings_button_pressed.png")
+        self.store_button = FunctionalButtons("./images/store_button.png",
+                                              "./images/store_button_pressed.png",
+                                              lambda: self.store_mission(True))
+        self.settings_button = FunctionalButtons("./images/settings_button.png",
+                                                 "./images/settings_button_pressed.png")
 
         layout_missions = QHBoxLayout()
         layout_missions.addStretch(2)
-        layout_missions.addWidget(self.mission1, 1)
-        layout_missions.addStretch(1)
-        layout_missions.addWidget(self.mission2, 1)
-        layout_missions.addStretch(1)
-        layout_missions.addWidget(self.mission_new, 1)
+        layout_missions.addWidget(self.stores[0])
+        layout_missions.addWidget(self.missions[0])
+        layout_missions.addWidget(self.stores[1])
+        layout_missions.addWidget(self.missions[1])
+        layout_missions.addWidget(self.stores[2])
+        layout_missions.addWidget(self.missions[2])
+        layout_missions.addWidget(self.stores[3])
         layout_missions.addStretch(2)
 
         layout_functional_buttons = QVBoxLayout()
-        layout_missions.addStretch(1)
+        layout_functional_buttons.addStretch(2)
         layout_functional_buttons.addWidget(self.mission_board_buttons)
+        layout_functional_buttons.addStretch(1)
         layout_functional_buttons.addWidget(self.store_button)
+        layout_functional_buttons.addStretch(1)
         layout_functional_buttons.addWidget(self.settings_button)
-        layout_missions.addStretch(1)
+        layout_functional_buttons.addStretch(2)
 
         layout_all = QHBoxLayout()
-        layout_missions.addStretch(1)
+        layout_all.addStretch(1)
         layout_all.addLayout(layout_functional_buttons)
-        layout_missions.addStretch(1)
+        layout_all.addStretch(1)
         layout_all.setSizeConstraint(1)
         layout_all.addLayout(layout_missions)
+        layout_all.addStretch(1)
 
         self.setLayout(layout_all)
         self.show_side_window()
@@ -254,6 +262,7 @@ class MainWindow(Window):
     def show_side_window(self):
         self.sideWindow = SideWindow(self)
         self.sideWindow.show()
+        self.store_mission(False)
 
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Message',
@@ -271,6 +280,19 @@ class MainWindow(Window):
         for elements in temp:
             self.list_mission.append(Mission(elements))
 
+    def store_mission(self, show_store):
+        if show_store:
+            for elements in self.missions:
+                elements.setVisible(False)
+            for elements in self.stores:
+                elements.setVisible(True)
+        else:
+            for elements in self.missions:
+                elements.setVisible(True)
+            for elements in self.stores:
+                elements.setVisible(False)
+        self.show()
+
     def recommended_mission(self):
         """
         This method must be called after at least after one mission is created.
@@ -280,7 +302,6 @@ class MainWindow(Window):
             pass
         else:
             pass
-
 
 
 class SideWindow(Window):
@@ -320,6 +341,12 @@ class FunctionalButtons(Buttons):
 class MissionButtons(Buttons):
     def __init__(self, mission_name="mission"):
         super(MissionButtons, self).__init__(mission_name)
+        self.setMinimumSize(200, 400)
+
+
+class StoreButtons(Buttons):
+    def __init__(self, prize_name="prize"):
+        super(StoreButtons, self).__init__(prize_name)
         self.setMinimumSize(200, 400)
 
 
@@ -394,7 +421,4 @@ def quick_sort(unsorted_list):
 
 
 if __name__ == "__main__":
-    # app = Application()
-    a = [1, 2, 3, 4, 5]
-    b,c=find_2_largest(a)
-    print(a[b], a[c])
+    app = Application()

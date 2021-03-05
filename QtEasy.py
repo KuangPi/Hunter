@@ -33,7 +33,7 @@ class Window(QWidget):
         # Centralize at the user's screen
         self.setWindowIcon(QIcon("./images/hunter_logo.png"))
         self.center()
-        self.setStyleSheet("Window{background-color: black;}")
+        self.setStyleSheet("Window{background-color: #1f2623;}")
 
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Message',
