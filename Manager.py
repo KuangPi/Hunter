@@ -210,6 +210,7 @@ class MainWindow(Window):
         self.setWindowTitle("Hunter: Mission Selection")
         self.set_size(780, 720)
         self.sideWindow = SideWindow(self)
+        self.settingWindow = SettingWindow(self)
 
         self.manager = manager
         self.list_mission = list()
@@ -226,7 +227,8 @@ class MainWindow(Window):
                                               "./images/store_button_pressed.png",
                                               lambda: self.store_mission(True))
         self.settings_button = FunctionalButtons("./images/settings_button.png",
-                                                 "./images/settings_button_pressed.png")
+                                                 "./images/settings_button_pressed.png",
+                                                 self.show_settings_window)
 
         layout_missions = QHBoxLayout()
         layout_missions.addStretch(2)
@@ -293,6 +295,10 @@ class MainWindow(Window):
                 elements.setVisible(False)
         self.show()
 
+    def show_settings_window(self):
+        self.settingWindow = SettingWindow(self)
+        self.settingWindow.show()
+
     def recommended_mission(self):
         """
         This method must be called after at least after one mission is created.
@@ -316,9 +322,28 @@ class SideWindow(Window):
         # todo Check if this happens to Windows also or if it is a special bug for mac.
         self.setFixedSize(300, 720)
 
+    def closeEvent(self, event):
+        event.accept()
+
+
+class SettingWindow(Window):
+    def __init__(self, owner):
+        super(SettingWindow, self).__init__()
+        self.owner_window = owner
+        self.setWindowTitle("Hunter: Settings")
+        self.setFixedSize(300, 400)
+        self.center()
+
+        # Init UIs
+        self.test_lb = QLabel(self)
+        self.test_lb.setText("test")
+        self.test_lb.setStyleSheet("QLabel{color: white; }")
+
+    def closeEvent(self, event):
+        event.accept()
+
 
 # ############ Window Class Finishes here ################# #
-
 
 class FunctionalButtons(Buttons):
     def __init__(self, image_on, image_off, event=None):
@@ -347,7 +372,7 @@ class MissionButtons(Buttons):
 class StoreButtons(Buttons):
     def __init__(self, prize_name="prize"):
         super(StoreButtons, self).__init__(prize_name)
-        self.setMinimumSize(200, 400)
+        self.setMinimumSize(150, 400)
 
 
 class NewMissionButtons(MissionButtons):
