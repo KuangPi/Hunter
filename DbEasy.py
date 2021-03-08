@@ -40,5 +40,57 @@ def insert_into_database(values, table_name, database_name="userdata.db"):
     connection.close()
 
 
+def update_existing_in_database(key, key_column, values, columns, table_name, database_name="userdata.db"):
+    """
+    :param key:
+    :param key_column:
+    :param values: list
+    :param columns: list
+    :param table_name:
+    :param database_name:
+    :return:
+    """
+    length = len(values)
+    if length == len(columns) and length != 0:
+        connection = _sqlite3.connect(database_name)
+        temp = f"UPDATE  {table_name} SET "
+        for i in range(length):
+            if isinstance(values[i], str):
+                if i == length - 1:
+                    if isinstance(key, str):
+                        temp += f"{columns[i]} = '{values[i]}' WHERE {key_column} = '{key}';"
+                    else:
+                        temp += f"{columns[i]} = '{values[i]}' WHERE {key_column} = {key};"
+                else:
+                    temp += f"{columns[i]} = '{values[i]}', "
+            elif values[i] is None:
+                if i == length - 1:
+                    if isinstance(key, str):
+                        temp += f"{columns[i]} = NULL WHERE {key_column} = '{key}';"
+                    else:
+                        temp += f"{columns[i]} = NULL WHERE {key_column} = {key};"
+                else:
+                    temp += f"{columns[i]} = NULL, "
+            else:
+                if i == length - 1:
+                    if isinstance(key, str):
+                        temp += f"{columns[i]} = {values[i]} WHERE {key_column} = '{key}';"
+                    else:
+                        temp += f"{columns[i]} = {values[i]} WHERE {key_column} = {key};"
+                else:
+                    temp += f"{columns[i]} = {values[i]}, "
+        cur = connection.cursor()
+        cur.execute(temp)
+        connection.commit()
+
+        # Close the connection.
+        cur.close()
+        connection.close()
+        return True
+
+    else:
+        return False
+
+
 if __name__ == "__main__":
-    insert_into_database([2, "exist", "random"], "Login")
+    pass

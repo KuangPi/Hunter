@@ -8,10 +8,10 @@
 This script manipulates the GUI of the application. Using pyqt5 and creates all kinds application required.
 """
 
-from PyQt5.QtCore import QThread, QCoreApplication, Qt
+from PyQt5.QtCore import QThread, QCoreApplication, Qt, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget, \
-    QPushButton, QLabel, QDesktopWidget, QMessageBox, QLineEdit
-from PyQt5.QtGui import QIcon
+    QPushButton, QLabel, QDesktopWidget, QMessageBox, QLineEdit, QFrame, QGraphicsDropShadowEffect
+from PyQt5.QtGui import QIcon, QMouseEvent
 import time
 import sys
 
@@ -55,6 +55,13 @@ class Window(QWidget):
         self.setMaximumSize(width, height)
         self.setMinimumSize(width, height)
 
+    def hide_window(self):
+        """
+        Minimize the window.
+        :return:
+        """
+        self.setWindowState(Qt.WindowMinimized)
+
 
 class Labels(QLabel):
     """
@@ -62,13 +69,18 @@ class Labels(QLabel):
     """
     def __init__(self, content="Blank"):
         super(Labels, self).__init__()
-        self.setText(str(content))
-        self.setStyleSheet("Labels{color: white; font-size: x-large}")
+        self.content = str(content)
+        self.setText(self.content)
+        self.setStyleSheet("Labels{color: white;}")
 
     def reset_text(self, text, color="000000"):
-        self.setText(str(text))
+        self.content = str(text)
+        self.setText(self.content)
         self.setStyleSheet(f"color: #{color};")
         self.update()
+
+    def __str__(self):
+        return self.content
 
 
 class Buttons(QPushButton):
@@ -104,21 +116,23 @@ class Buttons(QPushButton):
         self.setMinimumSize(width, height)
 
 
-class ButtonQuit(Buttons):
-    def __init__(self):
-        super(ButtonQuit, self).__init__("Quit")
+class ImageButtons(QLabel):
+    clicked = pyqtSignal()
+
+    def __init__(self, content="Buttons", click_event=None):
+        super(ImageButtons, self).__init__()
+
+    def connect_event(self, click_event=None):
+        if click_event is None:
+            self.clicked.connect(self.click_event)
+        else:
+            self.clicked.connect(click_event)
 
     def click_event(self):
-        # todo Call the close event when quit.
-        # This is a temporary solution, which directly copies the code from close event.
-        reply = QMessageBox.question(self, 'Message',
-                                     "Are you sure to quit?", QMessageBox.Yes |
-                                     QMessageBox.No, QMessageBox.No)
+        print(f"{self} is clicked! ")
 
-        if reply == QMessageBox.Yes:
-            QCoreApplication.instance().quit()
-        else:
-            pass
+    def mouseReleaseEvent(self, ev: QMouseEvent):
+        self.clickd.emit()
 
 
 class InputLine(QLineEdit):
@@ -127,6 +141,13 @@ class InputLine(QLineEdit):
     """
     def __init__(self):
         super(InputLine, self).__init__()
+
+
+class Line(QFrame):
+    def __init__(self):
+        super(Line, self).__init__()
+        self.setFrameShape(QFrame.HLine)
+        self.setStyleSheet("QFrame{color: white}")
 
 
 if __name__ == '__main__':

@@ -15,3 +15,33 @@ class ChangeSignalMainScreen(QtCore.QObject):
 
     def run(self):
         self.signal.emit()
+
+
+class ChangeSignalSideScreen(QtCore.QObject):
+    signal = QtCore.pyqtSignal()
+
+    def __init__(self):
+        super(ChangeSignalSideScreen, self).__init__()
+
+    def run(self):
+        self.signal.emit()
+
+
+class ChangeSignalSettingScreen(QtCore.QObject):
+    signal = QtCore.pyqtSignal()
+
+    def __init__(self):
+        super(ChangeSignalSettingScreen, self).__init__()
+
+    def run(self):
+        self.signal.emit()
+
+
+class CloseSignalMainScreen(QtCore.QObject):
+    signal = QtCore.pyqtSignal()
+
+    def __init__(self):
+        super(CloseSignalMainScreen, self).__init__()
+
+    def run(self):
+        self.signal.emit()
