@@ -113,8 +113,8 @@ class LoginWindow(Window):
         self.setWindowTitle("Hunter: Login")
         self.tag_hint_message = Labels("")
 
-        tag_notification = Labels("Enter below to login or register")
-        tag_notification.setStyleSheet("QLabel{color: white; font-size:30px;}")
+        tag_notification = Labels("The  Hunter")
+        tag_notification.setStyleSheet("QLabel{color: red; font-size:60px;}")
         tag_username = Labels("Username:")
         tag_password = Labels("Password: ")
 
@@ -361,7 +361,7 @@ class SideWindow(Window):
         self.setGeometry(self.owner_window.x() + self.owner_window.width(),
                          self.owner_window.y(), 300, 740)  # A weired way to solve a weired bug. The location of
         # The bug is because the system hint bar, the way to solve it is to hide the bar, but it will cause extra work.
-        self.setFixedSize(300, 720)
+        self.setFixedSize(300, 742)
 
         overall_layout = QVBoxLayout()
 
@@ -553,10 +553,21 @@ class MissionButtons(CardsButton):
         print(f"Start mission {self.mission_name}! ")
 
 
-class StoreButtons(Buttons):
-    def __init__(self, prize_name="prize"):
-        super(StoreButtons, self).__init__(prize_name)
+class StoreButtons(CardsButton):
+    def __init__(self, prize_name="prize", prize_duration=1, prize_cost=1):
+        super(StoreButtons, self).__init__()
         self.setMinimumSize(150, 400)
+
+        labels = QVBoxLayout()
+        self.mission_name = Labels(prize_name)
+        mission_duration = Labels(f"{prize_duration} unit time")
+        mission_ddl = Labels(f"Costs: {prize_cost}")
+        labels.addWidget(self.mission_name)
+        labels.addWidget(mission_duration)
+        labels.addWidget(mission_ddl)
+        labels.setAlignment(Qt.AlignHCenter)
+
+        self.setLayout(labels)
 
 
 class NewMissionButtons(CardsButton):
