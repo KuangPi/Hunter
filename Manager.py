@@ -251,7 +251,9 @@ class MainWindow(Window):
 
         self._manager = manager
 
-        self.missions = [MissionButtons(), MissionButtons(), NewMissionButtons(self._manager)]
+        a, b = self.recommended_mission()
+
+        self.missions = [MissionButtons(a), MissionButtons(b), NewMissionButtons(self._manager)]
         self.stores = [StoreButtons(), StoreButtons(), StoreButtons(), StoreButtons()]
         self.store_mission(False)
 
@@ -339,11 +341,19 @@ class MainWindow(Window):
         temp = self.get_user().mission
         weighted_values = list()
         for mission in temp:
-            pass
-        if len(self.list_mission) > 1:
-            pass
+            weighted_values.append(mission.value())
+
+        a, b = find_2_smallest(weighted_values)
+        if a is None:
+            if b is None:
+                return None, None
+            else:
+                return None, temp[b]
         else:
-            pass
+            if b is None:
+                return temp[a], None
+            else:
+                return temp[a], temp[b]
 
     def get_user(self):
         return self._manager.get_user()
@@ -624,13 +634,19 @@ class CardsButton(QFrame):
 
 
 class MissionButtons(CardsButton):
-    def __init__(self, mission_name="mission", mission_duration=1, mission_ddl="00000000"):
+    def __init__(self, mission=None):
         super(MissionButtons, self).__init__()
-
         labels = QVBoxLayout()
-        self.mission_name = Labels(mission_name)
-        mission_duration = Labels(f"{mission_duration} unit time")
-        mission_ddl = Labels(mission_ddl)
+
+        if mission is None:
+            self.mission_name = Labels("You Are Free! Enjoy! ")
+            mission_duration = Labels(f"{0} unit time")
+            mission_ddl = Labels("U R Free")
+        else:
+            self.mission_name = Labels(mission.mission_name)
+            mission_duration = Labels(f"{mission.mission_duration} unit time")
+            mission_ddl = Labels(mission.mission_ddl.toString())
+
         labels.addWidget(self.mission_name)
         labels.addWidget(mission_duration)
         labels.addWidget(mission_ddl)
@@ -689,7 +705,7 @@ class User:
         self.mission_accomplished = None
         self.prizes = None
         self.prizes_times = None
-        self.mission = []
+        self.mission = list()
 
     def get_username(self):
         return self.username
@@ -770,17 +786,25 @@ class Mission:
     def __init__(self, information):
         self.mission_id = information[0]
         self.belong_user = information[1]
-        self.mission_name= information[2]
+        self.mission_name = information[2]
         temp = information[3]
-        self.mission_ddl = QDate(int(temp[0:5]), int(temp[4:6]), int(temp[5:]))
+        self.mission_ddl = QDate(int(temp[0:4]), int(temp[4:6]), int(temp[6:]))
         self.mission_duration = information[4]
+        self.mission_importance = information[5]
 
     def value(self):
         delta_date = self.mission_ddl.daysTo(QDate.currentDate())
+        if delta_date >= 0:
+            delta_date += 1
         duration = self.mission_duration
 
+        # The equation used here could be improved.
+        # One way to make it better is to find the user's preference on mission.
+        # Besides, it also could be combined with the user data recorded.
+        return delta_date * 8 // duration * self.mission_importance
+
     def __str__(self):
-        return f"The mission {self.mission_name} has a deadline on {self.mission_ddl} and " \
+        return f"The mission {self.mission_name} has a deadline on {self.mission_ddl.toString(Qt.ISODate)} and " \
                f"will take you {self.mission_duration} * 25 min to finish it. "
 
     def __repr__(self):
@@ -791,23 +815,23 @@ def sha256(content):
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
-def find_2_largest(unsorted_list):
-    largest1 = - 100000
-    largest2 = - 100000
-    largest1_index = None
-    largest2_index = None
+def find_2_smallest(unsorted_list):
+    smallest1 = 100000000
+    smallest2 = 100000000
+    smallest1_index = None
+    smallest2_index = None
 
     for i in range(len(unsorted_list)):
         test = unsorted_list[i]
-        if test > largest1:
-            largest2 = largest1
-            largest2_index = largest1_index
-            largest1 = test
-            largest1_index = i
-        elif unsorted_list[i] > largest2:
-            largest2 = test
-            largest2_index = i
-    return largest1_index, largest2_index
+        if test < smallest1:
+            smallest2 = smallest1
+            smallest2_index = smallest1_index
+            smallest1 = test
+            smallest1_index = i
+        elif unsorted_list[i] < smallest2:
+            smallest2 = test
+            smallest2_index = i
+    return smallest1_index, smallest2_index
 
 
 if __name__ == "__main__":
