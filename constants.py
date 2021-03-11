@@ -13,3 +13,12 @@ class WindowType(Enum):
     LOCK = 3
     SELECT = 4
     CD = 5
+
+
+class Importance(Enum):
+    IMMEDIATELY = -1
+    EARLY = 1
+    NORMAL = 2
+    LATER = 4
+    ANY_TIME = 10
+

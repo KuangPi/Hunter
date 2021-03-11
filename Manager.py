@@ -10,7 +10,7 @@ from constants import *
 from Signal import *
 
 from PyQt5.QtWidgets import QApplication, QLCDNumber, QMessageBox, QSpacerItem, QFrame
-from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtCore import Qt, QDate
 from PyQt5.QtGui import QMouseEvent, QWindowStateChangeEvent
 
 import sys
@@ -35,6 +35,8 @@ class Manager:
         self.side_window.hide()
         self.setting_window = Window()
         self.setting_window.hide()
+        self.new_window = Window()
+        self.new_window.hide()
 
         # For connect the events with the slots
         self.slot_main_window_transfer = ChangeSignalMainScreen()
@@ -45,6 +47,8 @@ class Manager:
         self.slot_setting_window_transfer.signal.connect(self.show_settings)
         self.slot_main_window_closer = CloseSignalMainScreen()
         self.slot_main_window_closer.signal.connect(self.close_side)
+        self.slot_new_window_transfer = ChangeSignalNewMissionScreen()
+        self.slot_new_window_transfer.signal.connect(self.show_new)
 
         self.tag = WindowType.INIT
         self.to_login()
@@ -57,11 +61,11 @@ class Manager:
 
     def to_main(self):
         self.reset_window()
+        self.current_user.pull_information()
         self.window = MainWindow(self)
         self.set_tag(WindowType.MAIN)
         self.window.show()
         self.show_side()
-        self.current_user.pull_information()
 
     def show_side(self):
         self.side_window = SideWindow(self.window)
@@ -70,6 +74,10 @@ class Manager:
     def show_settings(self):
         self.setting_window = SettingWindow(self)
         self.setting_window.show()
+
+    def show_new(self):
+        self.new_window = NewMissionMessageBox(self)
+        self.new_window.show()
 
     def close_side(self):
         self.side_window.close()
@@ -234,6 +242,7 @@ class LoginWindow(Window):
 class MainWindow(Window):
     minimized = QtCore.pyqtSignal()
     maximized = QtCore.pyqtSignal()
+    moved = QtCore.pyqtSignal()
 
     def __init__(self, manager):
         super(MainWindow, self).__init__()
@@ -241,10 +250,8 @@ class MainWindow(Window):
         self.set_size(780, 720)
 
         self._manager = manager
-        self.list_mission = list()
-        self.load_mission()
 
-        self.missions = [MissionButtons(), MissionButtons(), NewMissionButtons()]
+        self.missions = [MissionButtons(), MissionButtons(), NewMissionButtons(self._manager)]
         self.stores = [StoreButtons(), StoreButtons(), StoreButtons(), StoreButtons()]
         self.store_mission(False)
 
@@ -296,7 +303,6 @@ class MainWindow(Window):
 
     def show_missions(self):
         self.store_mission(False)
-        self.show_side_window()
 
     def show_store(self):
         self.store_mission(True)
@@ -311,11 +317,6 @@ class MainWindow(Window):
             event.accept()
         else:
             event.ignore()
-
-    def load_mission(self):
-        temp = search_in_database(self._manager.get_user().get_username(), "BelongUserName", "Mission")
-        for elements in temp:
-            self.list_mission.append(Mission(elements))
 
     def store_mission(self, show_store):
         if show_store:
@@ -333,8 +334,12 @@ class MainWindow(Window):
     def recommended_mission(self):
         """
         This method must be called after at least after one mission is created.
-        :return:
+        :return: A list of 2 Mission type object
         """
+        temp = self.get_user().mission
+        weighted_values = list()
+        for mission in temp:
+            pass
         if len(self.list_mission) > 1:
             pass
         else:
@@ -344,11 +349,20 @@ class MainWindow(Window):
         return self._manager.get_user()
 
     def changeEvent(self, event):
+        super(MainWindow, self).changeEvent(event)
+        self.moved.emit()  # Moved event does not run every time. The signal should be at a higher level.
+        # Consider rewrite the window moving event.
         if isinstance(event, QWindowStateChangeEvent):
             if self.isMinimized():
                 self.minimized.emit()
             else:
                 self.maximized.emit()
+
+    def mouseMoveEvent(self, e):
+        super(MainWindow, self).mousePressEvent(e)
+        self.moved.emit()
+        # There's still some problem that cause the side window' position cannot be immediately updated after main's
+        # moving. It might need to rewrite more complex event to achieve that feature.
 
 
 class SideWindow(Window):
@@ -358,9 +372,8 @@ class SideWindow(Window):
         self.owner_window = owner
         self.owner_window.minimized.connect(lambda: self.setWindowState(Qt.WindowMinimized))
         self.owner_window.maximized.connect(lambda: self.setWindowState(Qt.WindowNoState))
-        self.setGeometry(self.owner_window.x() + self.owner_window.width(),
-                         self.owner_window.y(), 300, 740)  # A weired way to solve a weired bug. The location of
-        # The bug is because the system hint bar, the way to solve it is to hide the bar, but it will cause extra work.
+        self.owner_window.moved.connect(self.set_location)
+        self.set_location()
         self.setFixedSize(300, 742)
 
         overall_layout = QVBoxLayout()
@@ -379,10 +392,10 @@ class SideWindow(Window):
         hints_layout.addWidget(finished_mission_tag)
         hints_layout.addWidget(unit_time_tag)
 
-        self.username_data = Labels(self.get_user().get_username())
+        self.username_data = Labels(self.get_user().get_nickname())
         self.success_rate_data = Labels()
-        self.finished_mission_data = Labels()
-        self.unit_time_data = Labels()
+        self.finished_mission_data = Labels(self.get_user().get_other_information("MA"))
+        self.unit_time_data = Labels(self.get_user().get_other_information("UT"))
 
         datas_layout.addWidget(self.username_data)
         datas_layout.addWidget(self.success_rate_data)
@@ -399,6 +412,11 @@ class SideWindow(Window):
         self.setLayout(overall_layout)
 
         self.setWindowFlag(Qt.FramelessWindowHint)
+
+    def set_location(self):
+        self.setGeometry(self.owner_window.x() + self.owner_window.width(),
+                         self.owner_window.y(), 300, 740)
+        self.updateGeometry()
 
     def closeEvent(self, event):
         event.accept()
@@ -417,7 +435,7 @@ class SettingWindow(Window):
 
         overall_layout = QVBoxLayout()   # Overall > sum
         self.username_tag = Labels(f"Hello {self._manager.get_user().get_username()}! \n"
-                              f"Please make your settings here.")
+                                   f"Please make your settings here.")
         # todo If user has a nick name, use it to replace it here.
         overall_layout.addWidget(self.username_tag)
 
@@ -472,7 +490,82 @@ class SettingWindow(Window):
         self.close()
 
 
+class NewMissionMessageBox(Window):
+    def __init__(self, manager):
+        super(NewMissionMessageBox, self).__init__()
+        self.setWindowTitle("Hunter: NewMission")
+        self.setFixedSize(300, 400)
+        self.center()
+        self._manager = manager
+
+        overall_layout = QVBoxLayout()   # Overall > sum
+        self.username_tag = Labels(f"Hello {self._manager.get_user().get_nickname()}! \n"
+                                   f"Please enter information below.")
+        overall_layout.addWidget(self.username_tag)
+
+        sum_layout = QHBoxLayout()  # Overall > sum
+
+        hint = QVBoxLayout()
+        mission_name_tag = Labels("Mission Name: ")
+        mission_duration_tag = Labels("Mission Duration: ")
+        # todo Thinking about using a calender to input the ddl.
+        mission_ddl_tag = Labels("Mission Deadline: ")
+        mission_importance_tag = Labels("Mission Importance: ")
+
+        hint.addWidget(mission_name_tag)
+        hint.addWidget(mission_duration_tag)
+        hint.addWidget(mission_ddl_tag)
+        hint.addWidget(mission_importance_tag)
+        values = QVBoxLayout()
+        self.mission_name_holder = InputLine("Mission Name")
+        self.mission_duration_holder = NumberComboBox()
+        self.mission_ddl_holder = InputLine("20210311")  # Change the date to today's date.
+        self.mission_importance_holder = ImportanceComboBox()
+        values.addWidget(self.mission_name_holder)
+        values.addWidget(self.mission_duration_holder)
+        values.addWidget(self.mission_ddl_holder)
+        values.addWidget(self.mission_importance_holder)
+
+        sum_layout.addLayout(hint)
+        sum_layout.addStretch(1)
+        sum_layout.addLayout(values)
+        overall_layout.addLayout(sum_layout)
+
+        buttons_layout = QHBoxLayout()
+        self.buttons_ok = Buttons("OK", self.ok_event)
+        self.buttons_cancel = Buttons("Cancel", self.cancel_event)
+        buttons_layout.addWidget(self.buttons_cancel)
+        buttons_layout.addStretch(1)
+        buttons_layout.addWidget(self.buttons_ok)
+
+        overall_layout.addLayout(buttons_layout)
+
+        self.setLayout(overall_layout)
+
+    def ok_event(self):
+        insert_into_database([None,
+                              self._manager.get_user().get_username(),
+                              self.mission_name_holder.text(),
+                              self.mission_ddl_holder.text(),
+                              self.mission_duration_holder.currentText(),
+                              self.mission_importance_holder.currentValue()],
+                             "Mission")
+        self.username_tag.setText("Mission is successfully added! \nClose the window now or"
+                                  "edit information \nto add another mission")
+
+    def keyPressEvent(self, key):
+        if key.key() == Qt.Key_Enter or key.key() == Qt.Key_Return:
+            self.ok_event()
+            self.cancel_event()
+
+    def cancel_event(self):
+        self.close()
+
+    def closeEvent(self, event):
+        pass
+
 # ############ Window Class Finishes here ################# #
+
 
 class FunctionalButtons(Buttons):
     def __init__(self, image_on, image_off, event=None):
@@ -571,13 +664,18 @@ class StoreButtons(CardsButton):
 
 
 class NewMissionButtons(CardsButton):
-    def __init__(self):
+    def __init__(self, manager):
         super(NewMissionButtons, self).__init__()
-        new_labels = Labels("New")
+        self._manager = manager
+        new_labels = Labels("+")
+        new_labels.setStyleSheet("Labels{font-size: 30px; color: white; }")
         layout = QVBoxLayout()
         layout.addWidget(new_labels)
         layout.setAlignment(Qt.AlignHCenter)
         self.setLayout(layout)
+
+    def click_event(self):
+        self._manager.slot_new_window_transfer.run()
 
 
 class User:
@@ -591,12 +689,14 @@ class User:
         self.mission_accomplished = None
         self.prizes = None
         self.prizes_times = None
+        self.mission = []
 
     def get_username(self):
         return self.username
 
     def pull_information(self):
         temp = search_in_database(self.username, "UserName", "UserInformation")
+        self.pull_mission()
         try:
             self.username = temp[0][0]
         except IndexError:
@@ -623,6 +723,11 @@ class User:
             return False
         return True
 
+    def pull_mission(self):
+        temp = search_in_database(self.username, "BelongUserName", "Mission")  # Thinking about append or replacing
+        for mission in temp:
+            self.mission.append(Mission(mission))
+
     def update_local_information(self, values, directly_to_db):
         self.nick_name = values[0]
         failed_update = 0
@@ -645,14 +750,20 @@ class User:
                                     "UserInformation")
 
     def get_other_information(self, name):
-        if name == "nick_name":
+        if name == "NN":  # Nick Name
             return self.nick_name
-        elif name == "unit_time":
+        elif name == "UT":  # Unit Time
             return self.unit_time
-        elif name == "mission_accomplished":
+        elif name == "MA":  # Mission Accomplished
             return self.mission_accomplished
         else:
             raise KeyError("Wrong user 'Name' is given when using 'get_other_information' method! ")
+
+    def get_nickname(self):
+        if self.nick_name is not None:
+            return self.nick_name
+        else:
+            return self.get_username()
 
 
 class Mission:
@@ -660,8 +771,13 @@ class Mission:
         self.mission_id = information[0]
         self.belong_user = information[1]
         self.mission_name= information[2]
-        self.mission_ddl = information[3]
+        temp = information[3]
+        self.mission_ddl = QDate(int(temp[0:5]), int(temp[4:6]), int(temp[5:]))
         self.mission_duration = information[4]
+
+    def value(self):
+        delta_date = self.mission_ddl.daysTo(QDate.currentDate())
+        duration = self.mission_duration
 
     def __str__(self):
         return f"The mission {self.mission_name} has a deadline on {self.mission_ddl} and " \
@@ -692,15 +808,6 @@ def find_2_largest(unsorted_list):
             largest2 = test
             largest2_index = i
     return largest1_index, largest2_index
-
-
-def quick_sort(unsorted_list):
-    pivot = unsorted_list[0]
-    for i in range(len(unsorted_list)):
-        if unsorted_list[i] < pivot:
-            temp = unsorted_list
-        else:  # Case of the same value is considered to be here
-            pass
 
 
 if __name__ == "__main__":

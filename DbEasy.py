@@ -33,7 +33,17 @@ def insert_into_database(values, table_name, database_name="userdata.db"):
     :return:
     """
     connection = _sqlite3.connect(database_name)
-    connection.execute(f"INSERT INTO {table_name} VALUES ({str(values)[1:-1]})")
+    command = f"INSERT INTO {table_name} VALUES ("
+    for value in values:
+        if value is None:
+            command += "NULL"
+        elif isinstance(value, str):
+            command += f"'{value}'"
+        else:
+            command += str(value)
+        command += ", "
+    command = command[0:-2] + ")"
+    connection.execute(command)
     connection.commit()
 
     # Close the connection.

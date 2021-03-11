@@ -10,8 +10,9 @@ This script manipulates the GUI of the application. Using pyqt5 and creates all 
 
 from PyQt5.QtCore import QThread, QCoreApplication, Qt, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget, \
-    QPushButton, QLabel, QDesktopWidget, QMessageBox, QLineEdit, QFrame, QGraphicsDropShadowEffect
+    QPushButton, QLabel, QDesktopWidget, QMessageBox, QLineEdit, QFrame, QComboBox
 from PyQt5.QtGui import QIcon, QMouseEvent
+from constants import Importance
 import time
 import sys
 
@@ -139,8 +140,9 @@ class InputLine(QLineEdit):
     """
     Yet has no difference with QLineEdit, there will be.
     """
-    def __init__(self):
+    def __init__(self, initial_content=""):
         super(InputLine, self).__init__()
+        self.setText(initial_content)
 
 
 class Line(QFrame):
@@ -148,6 +150,39 @@ class Line(QFrame):
         super(Line, self).__init__()
         self.setFrameShape(QFrame.HLine)
         self.setStyleSheet("QFrame{color: white}")
+
+
+class NumberComboBox(QComboBox):
+    """
+    A number box that has choice from 1 to 9
+    """
+    first_choice = "1"
+    other_choices = ["2", "3", "4", "5", "6", "7", "8", "9"]
+
+    def __init__(self):
+        super(NumberComboBox, self).__init__()
+        self.addItem(self.first_choice)
+        self.addItems(self.other_choices)
+
+
+class ImportanceComboBox(QComboBox):
+    """
+    A number box that has choice from not important to immediately.
+    """
+    choices = [Importance.IMMEDIATELY, Importance.EARLY, Importance.NORMAL, Importance.LATER, Importance.ANY_TIME]
+
+    def __init__(self):
+        super(ImportanceComboBox, self).__init__()
+        temp = list()
+        for i in self.choices:
+            temp.append(i.name.capitalize())
+
+        self.addItems(temp)
+
+        self.setCurrentIndex(2)
+
+    def currentValue(self):
+        return self.choices[self.currentIndex()].value
 
 
 if __name__ == '__main__':
