@@ -74,11 +74,11 @@ class Labels(QLabel):
         self.setText(self.content)
         self.setStyleSheet("Labels{color: white;}")
 
-    def reset_text(self, text, color="000000"):
+    def reset_text(self, text, color="ffffff"):
         self.content = str(text)
         self.setText(self.content)
-        self.setStyleSheet(f"color: #{color};")
-        self.update()
+        self.setStyleSheet(f"color: #{color};")  # Coupling problem here. Set color should be in another method.
+        self.repaint()
 
     def __str__(self):
         return self.content

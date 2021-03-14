@@ -15,6 +15,7 @@ from PyQt5.QtGui import QMouseEvent, QWindowStateChangeEvent
 
 import sys
 import hashlib
+import time
 
 
 class Application:
@@ -194,31 +195,37 @@ class LoginWindow(Window):
 
     def register_button_event(self):
         username, password = self.user_information()
-        self.set_user(username)
-        reply = QMessageBox.question(self, 'Register check',
-                                     f"Are you sure to register with '{username}' as your username? ",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
-        if reply == QMessageBox.Yes:
-            if search_in_database(username, "UserName", "Login") == ["NF"]:
-                insert_into_database([username, password], "Login")
-                self.set_login_message(True, False)
-            else:
-                self.set_login_message(False, False)
-
-    def set_login_message(self, is_correct, is_login):
-        if is_login:
-            if not is_correct:
-                self.tag_hint_message.reset_text("Wrong Username or Password! ", "c02c38")  # red
-            else:
-                self.tag_hint_message.reset_text(f"Welcome {self.get_username()}. "
-                                                 f"Logging you in.", "248067")
+        if username == "" or password == sha256(""):
+            self.set_login_message(False, False, True)
         else:
-            if not is_correct:
-                self.tag_hint_message.reset_text("Registration failed! "
-                                                 "The username has already been taken! ", "c02c38")
+            self.set_user(username)
+            reply = QMessageBox.question(self, 'Register check',
+                                         f"Are you sure to register with '{username}' as your username? ",
+                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+            if reply == QMessageBox.Yes:
+                if search_in_database(username, "UserName", "Login") == ["NF"]:
+                    insert_into_database([username, password], "Login")
+                    self.set_login_message(True, False)
+                else:
+                    self.set_login_message(False, False)
+
+    def set_login_message(self, is_correct, is_login, is_waitting_register=False):
+        if is_waitting_register:
+            self.tag_hint_message.reset_text("Enter information above to register", "c02c38")
+        else:
+            if is_login:
+                if not is_correct:
+                    self.tag_hint_message.reset_text("Wrong Username or Password! ", "c02c38")  # red
+                else:
+                    self.tag_hint_message.reset_text(f"Welcome {self.get_username()}. "
+                                                     f"Logging you in.", "248067")
             else:
-                self.tag_hint_message.reset_text("Registration succeeded! "
-                                                 "Now press 'login' to login ", "248067")
+                if not is_correct:
+                    self.tag_hint_message.reset_text("Registration failed! "
+                                                     "The username has already been taken! ", "c02c38")
+                else:
+                    self.tag_hint_message.reset_text("Registration succeeded! "
+                                                     "Now press 'login' to login ", "248067")
 
     def keyPressEvent(self, key):
         super(LoginWindow, self).keyPressEvent(key)
@@ -243,6 +250,7 @@ class MainWindow(Window):
     minimized = QtCore.pyqtSignal()
     maximized = QtCore.pyqtSignal()
     moved = QtCore.pyqtSignal()
+    mission_moved = QtCore.pyqtSignal()
 
     def __init__(self, manager):
         super(MainWindow, self).__init__()
@@ -266,6 +274,8 @@ class MainWindow(Window):
         self.settings_button = FunctionalButtons("./images/settings_button.png",
                                                  "./images/settings_button_pressed.png",
                                                  self.show_settings_window)
+
+        self.mission_moved.connect(self.mission_update)
 
         layout_missions = QHBoxLayout()
         layout_missions.addStretch(2)
@@ -304,6 +314,7 @@ class MainWindow(Window):
         self._manager.slot_setting_window_transfer.run()
 
     def show_missions(self):
+        self.mission_moved.emit()
         self.store_mission(False)
 
     def show_store(self):
@@ -333,12 +344,16 @@ class MainWindow(Window):
                 elements.setVisible(False)
         self.show()
 
-    def recommended_mission(self):
+    def recommended_mission(self, exclusion=None):
         """
         This method must be called after at least after one mission is created.
         :return: A list of 2 Mission type object
         """
         temp = self.get_user().mission
+        if exclusion is None:
+            exclusion = []
+        for exception in exclusion:
+            temp.remove(exception)
         weighted_values = list()
         for mission in temp:
             weighted_values.append(mission.value())
@@ -354,6 +369,14 @@ class MainWindow(Window):
                 return temp[a], None
             else:
                 return temp[a], temp[b]
+
+    def mission_update(self, exclusion=None):
+        if exclusion is None:
+            exclusion = []
+        a, b = self.recommended_mission(exclusion)
+        self.missions[0].update_content(a)
+        self.missions[1].update_content(b)
+        self.update()
 
     def get_user(self):
         return self._manager.get_user()
@@ -572,7 +595,7 @@ class NewMissionMessageBox(Window):
         self.close()
 
     def closeEvent(self, event):
-        pass
+        self._manager.window.mission_moved.emit()
 
 # ############ Window Class Finishes here ################# #
 
@@ -640,19 +663,30 @@ class MissionButtons(CardsButton):
 
         if mission is None:
             self.mission_name = Labels("You Are Free! Enjoy! ")
-            mission_duration = Labels(f"{0} unit time")
-            mission_ddl = Labels("U R Free")
+            self.mission_duration = Labels(f"{0} unit time")
+            self.mission_ddl = Labels("U R Free")
         else:
             self.mission_name = Labels(mission.mission_name)
-            mission_duration = Labels(f"{mission.mission_duration} unit time")
-            mission_ddl = Labels(mission.mission_ddl.toString())
+            self.mission_duration = Labels(f"{mission.mission_duration} unit time")
+            self.mission_ddl = Labels(mission.mission_ddl.toString())
 
         labels.addWidget(self.mission_name)
-        labels.addWidget(mission_duration)
-        labels.addWidget(mission_ddl)
+        labels.addWidget(self.mission_duration)
+        labels.addWidget(self.mission_ddl)
         labels.setAlignment(Qt.AlignHCenter)
 
         self.setLayout(labels)
+
+    def update_content(self, new_mission):
+        if new_mission is None:
+            self.mission_name.setText("You Are Free! Enjoy! ")
+            self.mission_duration.setText(f"{0} unit time")
+            self.mission_ddl.setText("U R Free")
+        else:
+            self.mission_name.setText(new_mission.mission_name)
+            self.mission_duration.setText(f"{new_mission.mission_duration} unit time")
+            self.mission_ddl.setText(new_mission.mission_ddl.toString())
+        self.update()
 
     def click_event(self):
         """
