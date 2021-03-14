@@ -8,9 +8,9 @@
 This script manipulates the GUI of the application. Using pyqt5 and creates all kinds application required.
 """
 
-from PyQt5.QtCore import QThread, QCoreApplication, Qt, pyqtSignal
+from PyQt5.QtCore import QThread, QCoreApplication, Qt, pyqtSignal, QSize
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget, \
-    QPushButton, QLabel, QDesktopWidget, QMessageBox, QLineEdit, QFrame, QComboBox
+    QPushButton, QLabel, QDesktopWidget, QMessageBox, QLineEdit, QFrame, QComboBox, QListWidget, QListWidgetItem
 from PyQt5.QtGui import QIcon, QMouseEvent
 from constants import Importance
 import time
@@ -146,10 +146,26 @@ class InputLine(QLineEdit):
 
 
 class Line(QFrame):
-    def __init__(self):
+    def __init__(self, h=True):
         super(Line, self).__init__()
-        self.setFrameShape(QFrame.HLine)
+        if h:
+            self.setFrameShape(QFrame.HLine)
+        else:
+            self.setFrameShape(QFrame.VLine)
         self.setStyleSheet("QFrame{color: white}")
+
+
+class ListWindow(QListWidget):
+    # This window is a 250 * 500 area.
+    def __init__(self, widgets):
+        super(ListWindow, self).__init__()
+        self.setFixedSize(250, 500)
+        for widget in widgets:
+            items = QListWidgetItem()
+            items.setSizeHint(QSize(200, 50))
+            self.addItem(items)
+            self.setItemWidget(items, widget)
+        self.setStyleSheet("ListWindow{background-color: #2b312c; }")
 
 
 class NumberComboBox(QComboBox):

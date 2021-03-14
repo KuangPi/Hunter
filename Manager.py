@@ -9,7 +9,7 @@ from DbEasy import *
 from constants import *
 from Signal import *
 
-from PyQt5.QtWidgets import QApplication, QLCDNumber, QMessageBox, QSpacerItem, QFrame
+from PyQt5.QtWidgets import QApplication, QLCDNumber, QMessageBox, QSpacerItem, QFrame, QListWidget
 from PyQt5.QtCore import Qt, QDate
 from PyQt5.QtGui import QMouseEvent, QWindowStateChangeEvent
 
@@ -265,6 +265,9 @@ class MainWindow(Window):
         self.stores = [StoreButtons(), StoreButtons(), StoreButtons(), StoreButtons()]
         self.store_mission(False)
 
+        self.missions[0].connect_event(lambda: self.mission_clicked(self.missions[0].mission))
+        self.missions[1].connect_event(lambda: self.mission_clicked(self.missions[1].mission))
+
         self.mission_board_buttons = FunctionalButtons("./images/mission_board_button.png",
                                                        "./images/mission_board_button_pressed.png",
                                                        self.show_missions)
@@ -381,6 +384,12 @@ class MainWindow(Window):
     def get_user(self):
         return self._manager.get_user()
 
+    def mission_clicked(self, mission):
+        today = QDate.currentDate().toString()
+        records = open(f"records/{today}.txt", mode="a")
+        records.write(f"{mission.__repr__()}/{today}\n")
+        records.close()
+
     def changeEvent(self, event):
         super(MainWindow, self).changeEvent(event)
         self.moved.emit()  # Moved event does not run every time. The signal should be at a higher level.
@@ -438,10 +447,10 @@ class SideWindow(Window):
         information_layout.addLayout(hints_layout)
         information_layout.addLayout(datas_layout)
 
-        todos_layout = QVBoxLayout()
-
+        finished_missions = RecordedFinishedMission()
         overall_layout.addLayout(information_layout)
-        overall_layout.addLayout(todos_layout)
+        overall_layout.addWidget(Line())
+        overall_layout.addWidget(finished_missions)
         self.setLayout(overall_layout)
 
         self.setWindowFlag(Qt.FramelessWindowHint)
@@ -481,9 +490,9 @@ class SettingWindow(Window):
         hint.addWidget(unit_time_tag)
         values = QVBoxLayout()
         self.nick_name_holder = InputLine()
-        self.nick_name_holder.setText(f"{self._manager.get_user().get_other_information('nick_name')}")
+        self.nick_name_holder.setText(f"{self._manager.get_user().get_other_information('NN')}")
         self.unit_time_holder = InputLine()
-        self.unit_time_holder.setText(f"{self._manager.get_user().get_other_information('unit_time')}")
+        self.unit_time_holder.setText(f"{self._manager.get_user().get_other_information('UT')}")
         values.addWidget(self.nick_name_holder)
         values.addWidget(self.unit_time_holder)
 
@@ -660,7 +669,7 @@ class MissionButtons(CardsButton):
     def __init__(self, mission=None):
         super(MissionButtons, self).__init__()
         labels = QVBoxLayout()
-
+        self.mission = mission
         if mission is None:
             self.mission_name = Labels("You Are Free! Enjoy! ")
             self.mission_duration = Labels(f"{0} unit time")
@@ -726,6 +735,42 @@ class NewMissionButtons(CardsButton):
 
     def click_event(self):
         self._manager.slot_new_window_transfer.run()
+
+
+class RecordedFinishedMission(ListWindow):
+    def __init__(self):
+        temp = self.read_local_records()
+        widgets = list()
+        for i in range(len(temp)):
+            widgets.append(FinishedMissions({"Number": f"{i+1}", "Name": temp[i][0], "Time": temp[i][1]}))
+        super(RecordedFinishedMission, self).__init__(widgets)
+
+    def read_local_records(self):
+        file = open(f"records/{QDate.currentDate().toString()}.txt", "r")
+        temp = file.read().split("\n")
+        temp.remove("")
+        result = list()
+        for element in temp:
+            result.append(element.split("/"))
+        return result
+
+
+class FinishedMissions(QWidget):
+    def __init__(self, information):
+        super(FinishedMissions, self).__init__()
+        self.number = Labels(information["Number"])
+        self.mission_name = Labels(information["Name"])
+        self.mission_finished_time = Labels(information["Time"])
+
+        all_layout = QHBoxLayout()
+        all_layout.addWidget(self.number)
+        all_layout.addWidget(Line(False))
+        other_layout = QVBoxLayout()
+        other_layout.addWidget(self.mission_name)
+        other_layout.addWidget(self.mission_finished_time)
+        all_layout.addLayout(other_layout)
+        all_layout.setAlignment(Qt.AlignLeft)
+        self.setLayout(all_layout)
 
 
 class User:
@@ -842,7 +887,7 @@ class Mission:
                f"will take you {self.mission_duration} * 25 min to finish it. "
 
     def __repr__(self):
-        return self.__str__()
+        return f"{self.mission_name}"
 
 
 def sha256(content):
