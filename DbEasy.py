@@ -22,7 +22,7 @@ def search_in_database(search_key, column_name, table_name, database_name="userd
     if len(temp) != 0:
         return temp
     else:
-        return ["NF"]  # NF stands for not founded.
+        return None  # NF stands for not founded.
 
 
 def insert_into_database(values, table_name, database_name="userdata.db"):
@@ -103,4 +103,4 @@ def update_existing_in_database(key, key_column, values, columns, table_name, da
 
 
 if __name__ == "__main__":
-    pass
+    print(search_in_database("1", "UserName", "UserInformation"))

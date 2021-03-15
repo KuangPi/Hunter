@@ -203,8 +203,9 @@ class LoginWindow(Window):
                                          f"Are you sure to register with '{username}' as your username? ",
                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
             if reply == QMessageBox.Yes:
-                if search_in_database(username, "UserName", "Login") == ["NF"]:
+                if search_in_database(username, "UserName", "Login") is None:
                     insert_into_database([username, password], "Login")
+                    insert_into_database([username, None, None, None, None, None, None], "UserInformation")
                     self.set_login_message(True, False)
                 else:
                     self.set_login_message(False, False)
@@ -260,6 +261,9 @@ class MainWindow(Window):
         self._manager = manager
 
         a, b = self.recommended_mission()
+
+        today_records = open(f"{QDate.currentDate().toString()}.txt", "w")
+        today_records.close()
 
         self.missions = [MissionButtons(a), MissionButtons(b), NewMissionButtons(self._manager)]
         self.stores = [StoreButtons(), StoreButtons(), StoreButtons(), StoreButtons()]
@@ -741,18 +745,30 @@ class RecordedFinishedMission(ListWindow):
     def __init__(self):
         temp = self.read_local_records()
         widgets = list()
-        for i in range(len(temp)):
-            widgets.append(FinishedMissions({"Number": f"{i+1}", "Name": temp[i][0], "Time": temp[i][1]}))
+        if temp is None:
+            self.empty = True
+            widgets.append(Labels("Go Do Something at this new day! "))
+        else:
+            self.empty = False
+            for i in range(len(temp)):
+                widgets.append(FinishedMissions({"Number": f"{i+1}", "Name": temp[i][0], "Time": temp[i][1]}))
         super(RecordedFinishedMission, self).__init__(widgets)
 
     def read_local_records(self):
-        file = open(f"records/{QDate.currentDate().toString()}.txt", "r")
-        temp = file.read().split("\n")
-        temp.remove("")
-        result = list()
-        for element in temp:
-            result.append(element.split("/"))
-        return result
+        try:
+            file = open(f"records/{QDate.currentDate().toString()}.txt", "r")
+        except FileNotFoundError:
+            return None
+        temp = file.read()
+        if temp == "":
+            return None
+        else:
+            temp = temp.split("\n")
+            temp.remove("")
+            result = list()
+            for element in temp:
+                result.append(element.split("/"))
+            return result
 
 
 class FinishedMissions(QWidget):
@@ -790,38 +806,30 @@ class User:
         return self.username
 
     def pull_information(self):
-        temp = search_in_database(self.username, "UserName", "UserInformation")
+        temp = search_in_database(self.username, "UserName", "UserInformation")[0]
         self.pull_mission()
-        try:
-            self.username = temp[0][0]
-        except IndexError:
+        if temp is not None:
+            self.username = temp[0]
+            self.nick_name = temp[1]
+            self.unit_time = temp[2]
+            self.mission_accomplished = temp[3]
+            if temp[4] and temp[5] is not None:
+                self.prizes = temp[4].split(", ")
+                self.prizes_times = temp[5].split(", ")
+            else:
+                self.prizes = [temp[4]]
+                self.prizes_times = [temp[5]]
+            return True
+        else:
             return False
-        try:
-            self.nick_name = temp[0][1]
-        except IndexError:
-            return False
-        try:
-            self.unit_time = temp[0][2]
-        except IndexError:
-            return False
-        try:
-            self.mission_accomplished = temp[0][3]
-        except IndexError:
-            return False
-        try:
-            self.prizes = temp[0][4].split(", ")
-        except IndexError:
-            return False
-        try:
-            self.prizes_times = temp[0][5].split(", ")
-        except IndexError:
-            return False
-        return True
 
     def pull_mission(self):
         temp = search_in_database(self.username, "BelongUserName", "Mission")  # Thinking about append or replacing
-        for mission in temp:
-            self.mission.append(Mission(mission))
+        if temp is None:
+            pass
+        else:
+            for mission in temp:
+                self.mission.append(Mission(mission))
 
     def update_local_information(self, values, directly_to_db):
         self.nick_name = values[0]
