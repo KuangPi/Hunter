@@ -402,8 +402,8 @@ class MainWindow(Window):
         return self._manager.get_user()
 
     def mission_clicked(self, mission):
-        self._manager.slot_count_down_window_transfer.run()
         if mission is not None:
+            self._manager.slot_count_down_window_transfer.run()
             self.mission_completed(mission)
 
     def mission_completed(self, mission):
@@ -461,17 +461,17 @@ class SideWindow(Window):
         datas_layout = QVBoxLayout()
 
         username_tag = Labels("Username: ")
-        success_rate_tag = Labels("Success Rate: ")
+        currency_tag = Labels("Currency: ")
         finished_mission_tag = Labels("Mission Accomplished: ")
         unit_time_tag = Labels("1 unit time: ")
 
         hints_layout.addWidget(username_tag)
-        hints_layout.addWidget(success_rate_tag)
+        hints_layout.addWidget(currency_tag)
         hints_layout.addWidget(finished_mission_tag)
         hints_layout.addWidget(unit_time_tag)
 
         self.username_data = Labels(self.get_user().get_nickname())
-        self.success_rate_data = Labels()
+        self.success_rate_data = Labels(self.get_user().get_other_information("CU"))
         self.finished_mission_data = Labels(self.get_user().get_other_information("MA"))
         self.unit_time_data = Labels(self.get_user().get_other_information("UT"))
 
@@ -648,8 +648,12 @@ class CountDownWindow(Window):
         super(CountDownWindow, self).__init__()
         self.mission_name = mission_name
         self.label_mission_name = Labels(self.mission_name)
+        self.label_mission_name.set_font_size(24)
+        self.label_mission_name.setAlignment(Qt.AlignHCenter)
         self.lcd = QLCDNumber()
         self.lcd.setFixedSize(300, 200)
+        self.lcd.overflow.connect(self.too_many_time)
+        self.lcd.setNumDigits(2)
         self.quit_button = Buttons("Quit")
         self.quit_button.setFixedSize(100, 100)
         self.finished_early_button = Buttons("Finished \nEarly")
@@ -660,14 +664,27 @@ class CountDownWindow(Window):
         button_layout.addWidget(self.finished_early_button)
 
         overall_layout = QVBoxLayout()
-        overall_layout.addStretch(1)
+        overall_layout.addStretch(3)
         overall_layout.addWidget(self.label_mission_name)
-        overall_layout.addWidget(self.lcd)
-        overall_layout.addLayout(button_layout)
         overall_layout.addStretch(1)
+        overall_layout.addWidget(self.lcd)
+        overall_layout.addStretch(1)
+        overall_layout.addLayout(button_layout)
+        overall_layout.addStretch(3)
         overall_layout.setAlignment(Qt.AlignHCenter)
 
         self.setLayout(overall_layout)
+
+        self.timer = CountDownThread()
+        self.timer.passed_a_minute.connect(self.time_passed)
+        self.timer.start()
+
+    def time_passed(self, current_time):
+        self.lcd.display(current_time)
+
+    def too_many_time(self):
+        print("Time set is higher than expected. ")
+        self.lcd.display("Err")
 
 
 # ############ Window Class Finishes here ################# #
@@ -856,9 +873,14 @@ class CountDownThread(QThread):
     def __init__(self, excepted=25):
         super(CountDownThread, self).__init__()
         self.sum_minutes = excepted
+        print("init_completed")
 
     def run(self):
-        pass
+        for i in range(self.sum_minutes):
+            print(i)
+            self.passed_a_minute.emit(str(self.sum_minutes - i))
+            time.sleep(1)
+        self.passed_a_minute.emit(str(0))
 
 
 class User:
@@ -872,6 +894,7 @@ class User:
         self.mission_accomplished = None
         self.prizes = None
         self.prizes_times = None
+        self.currency = None
         self.mission = list()
 
     def get_username(self):
@@ -891,6 +914,7 @@ class User:
             else:
                 self.prizes = [temp[4]]
                 self.prizes_times = [temp[5]]
+            self.currency = temp[6]
             return True
         else:
             return False
@@ -931,6 +955,8 @@ class User:
             return self.unit_time
         elif name == "MA":  # Mission Accomplished
             return self.mission_accomplished
+        elif name == "CU":  # Currency
+            return self.currency
         else:
             raise KeyError("Wrong user 'Name' is given when using 'get_other_information' method! ")
 
