@@ -186,7 +186,7 @@ class LoginWindow(Window):
         username, password = self.user_information()
         self.set_user(username)
         temp = search_in_database(username, "UserName", "Login")
-        if temp[0] is "NF" or password != temp[0][1]:
+        if temp is None or password != temp[0][1]:
             self.set_login_message(False, True)
         else:
             print(f"User '{username}' logging into the system...")
@@ -262,7 +262,7 @@ class MainWindow(Window):
 
         a, b = self.recommended_mission()
 
-        today_records = open(f"{QDate.currentDate().toString()}.txt", "w")
+        today_records = open(f"records/{QDate.currentDate().toString()}_{self.get_user().get_username()}.txt", "w")
         today_records.close()
 
         self.missions = [MissionButtons(a), MissionButtons(b), NewMissionButtons(self._manager)]
@@ -390,7 +390,7 @@ class MainWindow(Window):
 
     def mission_clicked(self, mission):
         today = QDate.currentDate().toString()
-        records = open(f"records/{today}.txt", mode="a")
+        records = open(f"records/{today}_{self.get_user().get_username()}.txt", mode="a")
         records.write(f"{mission.__repr__()}/{today}\n")
         records.close()
 
@@ -451,7 +451,7 @@ class SideWindow(Window):
         information_layout.addLayout(hints_layout)
         information_layout.addLayout(datas_layout)
 
-        finished_missions = RecordedFinishedMission()
+        finished_missions = RecordedFinishedMission(self.owner_window.get_user().get_username())
         overall_layout.addLayout(information_layout)
         overall_layout.addWidget(Line())
         overall_layout.addWidget(finished_missions)
@@ -742,9 +742,11 @@ class NewMissionButtons(CardsButton):
 
 
 class RecordedFinishedMission(ListWindow):
-    def __init__(self):
+    def __init__(self, user):
+        self.user = user
         temp = self.read_local_records()
         widgets = list()
+
         if temp is None:
             self.empty = True
             widgets.append(Labels("Go Do Something at this new day! "))
@@ -756,7 +758,7 @@ class RecordedFinishedMission(ListWindow):
 
     def read_local_records(self):
         try:
-            file = open(f"records/{QDate.currentDate().toString()}.txt", "r")
+            file = open(f"records/{QDate.currentDate().toString()}_{self.user}.txt", "r")
         except FileNotFoundError:
             return None
         temp = file.read()
