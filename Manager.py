@@ -31,6 +31,7 @@ class Application:
 class Manager:
     def __init__(self):
         self.current_user = User()
+        self.current_mission = None
         self.window = Window()
         self.side_window = Window()
         self.side_window.hide()
@@ -70,7 +71,10 @@ class Manager:
 
     def to_count_down(self):
         self.reset_window()
-        self.window = CountDownWindow()
+        self.window = CountDownWindow(self.current_mission.mission_name)
+        self.window.completed.connect(self.mission_completed)
+        self.window.closing.connect(self.to_main)
+        self.window.quiting.connect(self.to_main)
         self.set_tag(WindowType.CD)
         self.window.show()
 
@@ -110,6 +114,34 @@ class Manager:
         """
         self.window.is_reset = True
         self.window.close()
+
+    def mission_completed(self):
+        mission = self.current_mission
+        if mission is not None:
+            # Add the record to local device.
+            today = QDate.currentDate().toString()
+            records = open(f"records/{today}_{self.get_username()}.txt", mode="a")
+            records.write(f"{mission.__repr__()}/{today}\n")
+            records.close()
+
+            # Add the record to database.
+            username = self.get_username()
+            update_existing_in_database(username,
+                                        "UserName",
+                                        [str(int(search_in_database(username,
+                                                                    "UserName",
+                                                                    "UserInformation",
+                                                                    "UserMissionAccomplished")[0][0])+1),
+                                         str(int(search_in_database(username,
+                                                                    "UserName",
+                                                                    "UserInformation",
+                                                                    "UserMoney")[0][0]) + 1)
+                                         ],
+                                        ["UserMissionAccomplished", "UserMoney"],
+                                        "UserInformation")
+            # Remove the mission completed from the mission.
+            delete_records_in_database(mission.mission_id, "MissionID", "Mission")
+            self.current_mission = None
 
 
 class LoginWindow(Window):
@@ -401,28 +433,8 @@ class MainWindow(Window):
 
     def mission_clicked(self, mission):
         if mission is not None:
+            self._manager.current_mission = mission
             self._manager.slot_count_down_window_transfer.run()
-            self.mission_completed(mission)
-
-    def mission_completed(self, mission):
-        # Add the record to local device.
-        today = QDate.currentDate().toString()
-        records = open(f"records/{today}_{self.get_user().get_username()}.txt", mode="a")
-        records.write(f"{mission.__repr__()}/{today}\n")
-        records.close()
-
-        # Add the record to database.
-        username = self.get_user().get_username()
-        update_existing_in_database(username,
-                                    "UserName",
-                                    [str(int(search_in_database(username,
-                                                        "UserName",
-                                                        "UserInformation",
-                                                        "UserMissionAccomplished")[0][0])+1)],
-                                    ["UserMissionAccomplished"],
-                                    "UserInformation")
-        # Remove the mission completed from the mission.
-        delete_records_in_database(mission.mission_id, "MissionID", "Mission")
 
     def changeEvent(self, event):
         super(MainWindow, self).changeEvent(event)
@@ -642,7 +654,11 @@ class NewMissionMessageBox(Window):
 
 
 class CountDownWindow(Window):
-    def __init__(self, mission_name="Mission", mission_duration=25):
+    completed = pyqtSignal()
+    closing = pyqtSignal()
+    quiting = pyqtSignal()
+
+    def __init__(self, mission_name="Mission", unit_time=25):
         super(CountDownWindow, self).__init__()
         self.mission_name = mission_name
         self.label_mission_name = Labels(self.mission_name)
@@ -654,27 +670,34 @@ class CountDownWindow(Window):
         self.lcd.setNumDigits(2)
         self.quit_button = Buttons("Quit")
         self.quit_button.setFixedSize(100, 100)
+        self.quit_button.connect_event(self.quit_before_done)
         self.finished_early_button = Buttons("Finished \nEarly")
         self.finished_early_button.setFixedSize(100, 100)
+        self.finished_message = Labels("Congradulations! Will turn back to the main window in 1 minute.")
+        self.finished_message.hide()
 
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.quit_button)
         button_layout.addWidget(self.finished_early_button)
 
         overall_layout = QVBoxLayout()
-        overall_layout.addStretch(3)
+        overall_layout.addStretch(6)
         overall_layout.addWidget(self.label_mission_name)
-        overall_layout.addStretch(1)
+        overall_layout.addStretch(2)
         overall_layout.addWidget(self.lcd)
         overall_layout.addStretch(1)
+        overall_layout.addWidget(self.finished_message)
+        overall_layout.addStretch(1)
         overall_layout.addLayout(button_layout)
-        overall_layout.addStretch(3)
+        overall_layout.addStretch(6)
         overall_layout.setAlignment(Qt.AlignHCenter)
 
         self.setLayout(overall_layout)
 
-        self.timer = CountDownThread()
+        self.timer = CountDownThread(unit_time)
         self.timer.passed_a_minute.connect(self.time_passed)
+        self.timer.completed.connect(self.mission_accomplished)
+        self.timer.close_valid.connect(self.close_self)
         self.timer.start()
 
     def time_passed(self, current_time):
@@ -683,6 +706,23 @@ class CountDownWindow(Window):
     def too_many_time(self):
         print("Time set is higher than expected. ")
         self.lcd.display("Err")
+
+    def mission_accomplished(self):
+        self.completed.emit()
+
+        self.finished_early_button.hide()
+        self.finished_message.show()
+
+        self.is_reset = True
+
+    def close_self(self):
+        self.close()
+        self.closing.emit()
+
+    def quit_before_done(self):
+        self.is_reset = True
+        self.close()
+        self.quiting.emit()
 
 
 # ############ Window Class Finishes here ################# #
@@ -867,6 +907,8 @@ class FinishedMissions(QWidget):
 
 class CountDownThread(QThread):
     passed_a_minute = pyqtSignal(str)
+    completed = pyqtSignal()
+    close_valid = pyqtSignal()
 
     def __init__(self, excepted=25):
         super(CountDownThread, self).__init__()
@@ -877,6 +919,9 @@ class CountDownThread(QThread):
             self.passed_a_minute.emit(str(self.sum_minutes - i))
             time.sleep(1)
         self.passed_a_minute.emit(str(0))
+        self.completed.emit()
+        time.sleep(1)
+        self.close_valid.emit()
 
 
 class User:
