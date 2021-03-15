@@ -36,8 +36,6 @@ class Manager:
         self.side_window.hide()
         self.setting_window = Window()
         self.setting_window.hide()
-        self.new_window = Window()
-        self.new_window.hide()
 
         # For connect the events with the slots
         self.slot_main_window_transfer = ChangeSignalMainScreen()
@@ -873,11 +871,9 @@ class CountDownThread(QThread):
     def __init__(self, excepted=25):
         super(CountDownThread, self).__init__()
         self.sum_minutes = excepted
-        print("init_completed")
 
     def run(self):
         for i in range(self.sum_minutes):
-            print(i)
             self.passed_a_minute.emit(str(self.sum_minutes - i))
             time.sleep(1)
         self.passed_a_minute.emit(str(0))
