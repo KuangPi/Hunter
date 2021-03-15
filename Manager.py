@@ -74,7 +74,6 @@ class Manager:
         self.window = CountDownWindow(self.current_mission.mission_name)
         self.window.completed.connect(self.mission_completed)
         self.window.closing.connect(self.to_main)
-        self.window.quiting.connect(self.to_main)
         self.set_tag(WindowType.CD)
         self.window.show()
 
@@ -656,7 +655,6 @@ class NewMissionMessageBox(Window):
 class CountDownWindow(Window):
     completed = pyqtSignal()
     closing = pyqtSignal()
-    quiting = pyqtSignal()
 
     def __init__(self, mission_name="Mission", unit_time=25):
         super(CountDownWindow, self).__init__()
@@ -672,6 +670,7 @@ class CountDownWindow(Window):
         self.quit_button.setFixedSize(100, 100)
         self.quit_button.connect_event(self.quit_before_done)
         self.finished_early_button = Buttons("Finished \nEarly")
+        self.finished_early_button.connect_event(self.mission_accomplished)
         self.finished_early_button.setFixedSize(100, 100)
         self.finished_message = Labels("Congradulations! Will turn back to the main window in 1 minute.")
         self.finished_message.hide()
@@ -710,19 +709,20 @@ class CountDownWindow(Window):
     def mission_accomplished(self):
         self.completed.emit()
 
-        self.finished_early_button.hide()
+        self.finished_early_button.setEnabled(False)
         self.finished_message.show()
 
         self.is_reset = True
+
+        self.timer.quit()
 
     def close_self(self):
         self.close()
         self.closing.emit()
 
     def quit_before_done(self):
-        self.is_reset = True
         self.close()
-        self.quiting.emit()
+        self.closing.emit()
 
 
 # ############ Window Class Finishes here ################# #
