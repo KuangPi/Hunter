@@ -76,17 +76,29 @@ class Labels(QLabel):
     def __init__(self, content="Blank"):
         super(Labels, self).__init__()
         self.content = str(content)
-        self.setText(self.content)
-        self.setStyleSheet("Labels{color: white;}")
-
-    def reset_text(self, text, color="ffffff"):
-        self.content = str(text)
-        self.setText(self.content)
-        self.setStyleSheet(f"color: #{color};")  # Coupling problem here. Set color should be in another method.
-        self.repaint()
+        self.color = "ffffff"
+        self.font_size = 12
+        self.set_content(content)
 
     def __str__(self):
         return self.content
+
+    def set_content(self, content=""):
+        self.content = str(content)
+        self.set_attribute()
+
+    def set_color(self, color="ffffff"):
+        self.color = color
+        self.set_attribute()
+
+    def set_font_size(self, size):
+        self.font_size = size
+        self.set_attribute()
+
+    def set_attribute(self):
+        self.setText(self.content)
+        self.setStyleSheet(f"Labels{{color: #{self.color}; font-size: {self.font_size}px; }}")
+        self.repaint()
 
 
 class Buttons(QPushButton):

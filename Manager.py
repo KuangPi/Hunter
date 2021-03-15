@@ -10,7 +10,7 @@ from constants import *
 from Signal import *
 
 from PyQt5.QtWidgets import QApplication, QLCDNumber, QMessageBox, QSpacerItem, QFrame, QListWidget
-from PyQt5.QtCore import Qt, QDate
+from PyQt5.QtCore import Qt, QDate, QThread, QTime
 from PyQt5.QtGui import QMouseEvent, QWindowStateChangeEvent
 
 import sys
@@ -221,21 +221,23 @@ class LoginWindow(Window):
 
     def set_login_message(self, is_correct, is_login, is_waitting_register=False):
         if is_waitting_register:
-            self.tag_hint_message.reset_text("Enter information above to register", "c02c38")
+            self.tag_hint_message.set_content("Enter information above to register")
+            self.tag_hint_message.set_color("c02c38")
         else:
             if is_login:
                 if not is_correct:
-                    self.tag_hint_message.reset_text("Wrong Username or Password! ", "c02c38")  # red
+                    self.tag_hint_message.set_content("Wrong Username or Password! ")
+                    self.tag_hint_message.set_color("c02c38")  # red
                 else:
-                    self.tag_hint_message.reset_text(f"Welcome {self.get_username()}. "
-                                                     f"Logging you in.", "248067")
+                    self.tag_hint_message.set_content(f"Welcome {self.get_username()}. Logging you in.")
+                    self.tag_hint_message.set_color("248067")  # Green
             else:
                 if not is_correct:
-                    self.tag_hint_message.reset_text("Registration failed! "
-                                                     "The username has already been taken! ", "c02c38")
+                    self.tag_hint_message.set_content("Registration failed! The username has already been taken! ")
+                    self.tag_hint_message.set_color("c02c38")
                 else:
-                    self.tag_hint_message.reset_text("Registration succeeded! "
-                                                     "Now press 'login' to login ", "248067")
+                    self.tag_hint_message.set_content("Registration succeeded! Now press 'login' to login ")
+                    self.tag_hint_message.set_color("248067")
 
     def keyPressEvent(self, key):
         super(LoginWindow, self).keyPressEvent(key)
@@ -642,12 +644,33 @@ class NewMissionMessageBox(Window):
 
 
 class CountDownWindow(Window):
-    def __init__(self):
+    def __init__(self, mission_name="Mission", mission_duration=25):
         super(CountDownWindow, self).__init__()
+        self.mission_name = mission_name
+        self.label_mission_name = Labels(self.mission_name)
+        self.lcd = QLCDNumber()
+        self.lcd.setFixedSize(300, 200)
+        self.quit_button = Buttons("Quit")
+        self.quit_button.setFixedSize(100, 100)
+        self.finished_early_button = Buttons("Finished \nEarly")
+        self.finished_early_button.setFixedSize(100, 100)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.quit_button)
+        button_layout.addWidget(self.finished_early_button)
+
+        overall_layout = QVBoxLayout()
+        overall_layout.addStretch(1)
+        overall_layout.addWidget(self.label_mission_name)
+        overall_layout.addWidget(self.lcd)
+        overall_layout.addLayout(button_layout)
+        overall_layout.addStretch(1)
+        overall_layout.setAlignment(Qt.AlignHCenter)
+
+        self.setLayout(overall_layout)
 
 
 # ############ Window Class Finishes here ################# #
-
 
 class FunctionalButtons(Buttons):
     def __init__(self, image_on, image_off, event=None):
@@ -825,6 +848,17 @@ class FinishedMissions(QWidget):
         all_layout.addLayout(other_layout)
         all_layout.setAlignment(Qt.AlignLeft)
         self.setLayout(all_layout)
+
+
+class CountDownThread(QThread):
+    passed_a_minute = pyqtSignal(str)
+
+    def __init__(self, excepted=25):
+        super(CountDownThread, self).__init__()
+        self.sum_minutes = excepted
+
+    def run(self):
+        pass
 
 
 class User:
