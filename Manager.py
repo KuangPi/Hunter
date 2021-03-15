@@ -301,6 +301,7 @@ class MainWindow(Window):
         self._manager = manager
 
         a, b = self.recommended_mission()
+        print(a, b)
 
         self.missions = [MissionButtons(a), MissionButtons(b), NewMissionButtons(self._manager)]
         self.stores = [StoreButtons(), StoreButtons(), StoreButtons(), StoreButtons()]
@@ -393,16 +394,13 @@ class MainWindow(Window):
                 elements.setVisible(False)
         self.show()
 
-    def recommended_mission(self, exclusion=None):
+    def recommended_mission(self):
         """
         This method must be called after at least after one mission is created.
         :return: A list of 2 Mission type object
         """
+        self.get_user().pull_information()
         temp = self.get_user().mission
-        if exclusion is None:
-            exclusion = []
-        for exception in exclusion:
-            temp.remove(exception)
         weighted_values = list()
         for mission in temp:
             weighted_values.append(mission.value())
@@ -419,10 +417,8 @@ class MainWindow(Window):
             else:
                 return temp[a], temp[b]
 
-    def mission_update(self, exclusion=None):
-        if exclusion is None:
-            exclusion = []
-        a, b = self.recommended_mission(exclusion)
+    def mission_update(self):
+        a, b = self.recommended_mission()
         self.missions[0].update_content(a)
         self.missions[1].update_content(b)
         self.update()
@@ -961,12 +957,11 @@ class User:
             return False
 
     def pull_mission(self):
-        temp = search_in_database(self.username, "BelongUserName", "Mission")  # Thinking about append or replacing
-        if temp is None:
-            pass
-        else:
-            for mission in temp:
-                self.mission.append(Mission(mission))
+        temp = search_in_database(self.username, "BelongUserName", "Mission")
+        temp_result = list()
+        for information in temp:
+            temp_result.append(Mission(information))
+        self.mission = temp_result
 
     def update_local_information(self, values, directly_to_db):
         self.nick_name = values[0]
@@ -1057,6 +1052,7 @@ def find_2_smallest(unsorted_list):
         elif unsorted_list[i] < smallest2:
             smallest2 = test
             smallest2_index = i
+    print(smallest1_index, smallest2_index)
     return smallest1_index, smallest2_index
 
 

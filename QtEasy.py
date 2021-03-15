@@ -121,7 +121,7 @@ class Buttons(QPushButton):
         Rewrite this function to bind any event to this button.
         When rewriting, simply build the attempted commands and it will run as needed.
         """
-        print(f"{self} is clicked! ")
+        pass
 
     def set_button_name(self, new_name):
         self.content = new_name
