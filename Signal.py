@@ -7,51 +7,41 @@
 from PyQt5 import QtCore
 
 
-class ChangeSignalMainScreen(QtCore.QObject):
+class SignalObjects(QtCore.QObject):
     signal = QtCore.pyqtSignal()
 
+    def __init__(self):
+        super(SignalObjects, self).__init__()
+
+    def run(self):
+        self.signal.emit()
+
+
+class ChangeSignalMainScreen(SignalObjects):
     def __init__(self):
         super(ChangeSignalMainScreen, self).__init__()
 
-    def run(self):
-        self.signal.emit()
 
-
-class ChangeSignalSideScreen(QtCore.QObject):
-    signal = QtCore.pyqtSignal()
-
+class ChangeSignalSideScreen(SignalObjects):
     def __init__(self):
         super(ChangeSignalSideScreen, self).__init__()
 
-    def run(self):
-        self.signal.emit()
 
-
-class ChangeSignalSettingScreen(QtCore.QObject):
-    signal = QtCore.pyqtSignal()
-
+class ChangeSignalSettingScreen(SignalObjects):
     def __init__(self):
         super(ChangeSignalSettingScreen, self).__init__()
 
-    def run(self):
-        self.signal.emit()
 
-
-class ChangeSignalNewMissionScreen(QtCore.QObject):
-    signal = QtCore.pyqtSignal()
-
+class ChangeSignalNewMissionScreen(SignalObjects):
     def __init__(self):
         super(ChangeSignalNewMissionScreen, self).__init__()
 
-    def run(self):
-        self.signal.emit()
+
+class ChangeSignalCountDownScreen(SignalObjects):
+    def __init__(self):
+        super(ChangeSignalCountDownScreen, self).__init__()
 
 
-class CloseSignalMainScreen(QtCore.QObject):
-    signal = QtCore.pyqtSignal()
-
+class CloseSignalMainScreen(SignalObjects):
     def __init__(self):
         super(CloseSignalMainScreen, self).__init__()
-
-    def run(self):
-        self.signal.emit()

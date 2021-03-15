@@ -30,6 +30,7 @@ class Window(QWidget):
         super(Window, self).__init__()
         # Here are some basic settings of the screen. Alter it later on your purpose with dot commands for each child.
         # Size
+        self.is_reset = False
         self.resize(1080, 720)
         # Centralize at the user's screen
         self.setWindowIcon(QIcon("./images/hunter_logo.png"))
@@ -37,14 +38,18 @@ class Window(QWidget):
         self.setStyleSheet("Window{background-color: #1f2623;}")
 
     def closeEvent(self, event):
-        reply = QMessageBox.question(self, 'Message',
-                                     "Are you sure to quit?", QMessageBox.Yes |
-                                     QMessageBox.No, QMessageBox.No)
-
-        if reply == QMessageBox.Yes:
+        if self.is_reset:
+            self.is_reset = False
             event.accept()
         else:
-            event.ignore()
+            reply = QMessageBox.question(self, 'Message',
+                                         "Are you sure to quit?", QMessageBox.Yes |
+                                         QMessageBox.No, QMessageBox.No)
+
+            if reply == QMessageBox.Yes:
+                event.accept()
+            else:
+                event.ignore()
 
     def center(self):
         qr = self.frameGeometry()

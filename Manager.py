@@ -50,6 +50,8 @@ class Manager:
         self.slot_main_window_closer.signal.connect(self.close_side)
         self.slot_new_window_transfer = ChangeSignalNewMissionScreen()
         self.slot_new_window_transfer.signal.connect(self.show_new)
+        self.slot_count_down_window_transfer = ChangeSignalCountDownScreen()
+        self.slot_count_down_window_transfer.signal.connect(self.to_count_down)
 
         self.tag = WindowType.INIT
         self.to_login()
@@ -67,6 +69,12 @@ class Manager:
         self.set_tag(WindowType.MAIN)
         self.window.show()
         self.show_side()
+
+    def to_count_down(self):
+        self.reset_window()
+        self.window = CountDownWindow()
+        self.set_tag(WindowType.CD)
+        self.window.show()
 
     def show_side(self):
         self.side_window = SideWindow(self.window)
@@ -102,7 +110,8 @@ class Manager:
         """
         Always create a new window right after rest it.
         """
-        self.window = None
+        self.window.is_reset = True
+        self.window.close()
 
 
 class LoginWindow(Window):
@@ -262,9 +271,6 @@ class MainWindow(Window):
 
         a, b = self.recommended_mission()
 
-        today_records = open(f"records/{QDate.currentDate().toString()}_{self.get_user().get_username()}.txt", "w")
-        today_records.close()
-
         self.missions = [MissionButtons(a), MissionButtons(b), NewMissionButtons(self._manager)]
         self.stores = [StoreButtons(), StoreButtons(), StoreButtons(), StoreButtons()]
         self.store_mission(False)
@@ -328,15 +334,20 @@ class MainWindow(Window):
         self.store_mission(True)
 
     def closeEvent(self, event):
-        reply = QMessageBox.question(self, 'Message',
-                                     "Are you sure to quit?", QMessageBox.Yes |
-                                     QMessageBox.No, QMessageBox.No)
-
-        if reply == QMessageBox.Yes:
+        if self.is_reset:
+            self.is_reset = False
             self._manager.slot_main_window_closer.run()
             event.accept()
         else:
-            event.ignore()
+            reply = QMessageBox.question(self, 'Message',
+                                         "Are you sure to quit?", QMessageBox.Yes |
+                                         QMessageBox.No, QMessageBox.No)
+
+            if reply == QMessageBox.Yes:
+                self._manager.slot_main_window_closer.run()
+                event.accept()
+            else:
+                event.ignore()
 
     def store_mission(self, show_store):
         if show_store:
@@ -389,7 +400,9 @@ class MainWindow(Window):
         return self._manager.get_user()
 
     def mission_clicked(self, mission):
-        self.mission_completed(mission)
+        self._manager.slot_count_down_window_transfer.run()
+        if mission is not None:
+            self.mission_completed(mission)
 
     def mission_completed(self, mission):
         # Add the record to local device.
