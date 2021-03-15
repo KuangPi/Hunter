@@ -389,10 +389,27 @@ class MainWindow(Window):
         return self._manager.get_user()
 
     def mission_clicked(self, mission):
+        self.mission_completed(mission)
+
+    def mission_completed(self, mission):
+        # Add the record to local device.
         today = QDate.currentDate().toString()
         records = open(f"records/{today}_{self.get_user().get_username()}.txt", mode="a")
         records.write(f"{mission.__repr__()}/{today}\n")
         records.close()
+
+        # Add the record to database.
+        username = self.get_user().get_username()
+        update_existing_in_database(username,
+                                    "UserName",
+                                    [str(int(search_in_database(username,
+                                                        "UserName",
+                                                        "UserInformation",
+                                                        "UserMissionAccomplished")[0][0])+1)],
+                                    ["UserMissionAccomplished"],
+                                    "UserInformation")
+        # Remove the mission completed from the mission.
+        delete_records_in_database(mission.mission_id, "MissionID", "Mission")
 
     def changeEvent(self, event):
         super(MainWindow, self).changeEvent(event)
@@ -609,6 +626,12 @@ class NewMissionMessageBox(Window):
 
     def closeEvent(self, event):
         self._manager.window.mission_moved.emit()
+
+
+class CountDownWindow(Window):
+    def __init__(self):
+        super(CountDownWindow, self).__init__()
+
 
 # ############ Window Class Finishes here ################# #
 

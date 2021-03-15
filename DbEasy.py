@@ -6,18 +6,18 @@
 import _sqlite3
 
 
-def search_in_database(search_key, column_name, table_name, database_name="userdata.db"):
+def search_in_database(search_key, column_name, table_name, cell_name="*", database_name="userdata.db"):
     """
     :param search_key: anything
-    :parameter objectName: user_defined_object
-    :parameter searchkey: Any
-    :parameter database_name: string
-    :parameter table_name: string
-    :parameter column_name: String
-    :return result: list
+    :param column_name: str
+    :param table_name: str
+    :param cell_name: str
+    :param database_name: str
+    :return: tuple(list)
     """
     connection = _sqlite3.connect(database_name)
-    temp = connection.execute(f"SELECT * FROM {table_name} WHERE {column_name} = '{str(search_key)}'").fetchall()
+    temp = connection.execute(f"SELECT {cell_name} FROM {table_name} WHERE "
+                              f"{column_name} = '{str(search_key)}'").fetchall()
     connection.close()
     if len(temp) != 0:
         return temp
@@ -100,6 +100,22 @@ def update_existing_in_database(key, key_column, values, columns, table_name, da
 
     else:
         return False
+
+
+def delete_records_in_database(primary_key, key_column, table_name, database_name="userdata.db"):
+    """
+    :param primary_key: int
+    :param key_column:
+    :param table_name:
+    :param database_name:
+    :return: None
+    """
+    connection = _sqlite3.connect(database_name)
+    temp = f"DELETE FROM {table_name} WHERE {key_column} = {primary_key}"
+    connection.execute(temp)
+    connection.commit()
+    connection.close()
+    return None
 
 
 if __name__ == "__main__":
