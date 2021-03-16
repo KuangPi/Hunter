@@ -680,7 +680,10 @@ class NewMissionMessageBox(Window):
         values = QVBoxLayout()
         self.mission_name_holder = InputLine("Mission Name")
         self.mission_duration_holder = NumberComboBox()
-        self.mission_ddl_holder = InputLine("20210311")  # Change the date to today's date.
+        temp = QDate.currentDate().toString(Qt.ISODate)
+        temp = temp.replace("-", "")
+        print(temp)
+        self.mission_ddl_holder = InputLine(temp)
         self.mission_importance_holder = ImportanceComboBox()
         values.addWidget(self.mission_name_holder)
         values.addWidget(self.mission_duration_holder)
