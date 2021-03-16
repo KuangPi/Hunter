@@ -243,7 +243,8 @@ class LoginWindow(Window):
             if reply == QMessageBox.Yes:
                 if search_in_database(username, "UserName", "Login") is None:
                     insert_into_database([username, password], "Login")
-                    insert_into_database([username, None, None, None, None, None, None], "UserInformation")
+                    insert_into_database([username, None], "UserInformation",
+                                         ["UserName", "UserPreferredName"])
                     self.set_login_message(True, False)
                 else:
                     self.set_login_message(False, False)
@@ -292,6 +293,7 @@ class MainWindow(Window):
     maximized = QtCore.pyqtSignal()
     moved = QtCore.pyqtSignal()
     mission_moved = QtCore.pyqtSignal()
+    user_info_changed = QtCore.pyqtSignal()
 
     def __init__(self, manager):
         super(MainWindow, self).__init__()
@@ -301,21 +303,24 @@ class MainWindow(Window):
         self._manager = manager
 
         a, b = self.recommended_mission()
-        print(a, b)
 
         self.missions = [MissionButtons(a), MissionButtons(b), NewMissionButtons(self._manager)]
-        self.stores = [StoreButtons(), StoreButtons(), StoreButtons(), StoreButtons()]
+        self.stores = [StoreButtons(), StoreButtons(), StoreButtons()]
+        self.update_store()
         self.store_mission(False)
 
         self.missions[0].connect_event(lambda: self.mission_clicked(self.missions[0].mission))
         self.missions[1].connect_event(lambda: self.mission_clicked(self.missions[1].mission))
+
+        for prizes in self.stores:
+            prizes.consume.connect(self.prize_consumed)
 
         self.mission_board_buttons = FunctionalButtons("./images/mission_board_button.png",
                                                        "./images/mission_board_button_pressed.png",
                                                        self.show_missions)
         self.store_button = FunctionalButtons("./images/store_button.png",
                                               "./images/store_button_pressed.png",
-                                              lambda: self.store_mission(True))
+                                              self.show_store)
         self.settings_button = FunctionalButtons("./images/settings_button.png",
                                                  "./images/settings_button_pressed.png",
                                                  self.show_settings_window)
@@ -330,7 +335,6 @@ class MainWindow(Window):
         layout_missions.addWidget(self.missions[1])
         layout_missions.addWidget(self.stores[2])
         layout_missions.addWidget(self.missions[2])
-        layout_missions.addWidget(self.stores[3])
         layout_missions.addStretch(2)
 
         layout_functional_buttons = QVBoxLayout()
@@ -360,9 +364,21 @@ class MainWindow(Window):
 
     def show_missions(self):
         self.mission_moved.emit()
+        self.update_store()
         self.store_mission(False)
 
+    def update_store(self):
+        self.get_user().pull_information()
+        prizes_names = self.get_user().prizes
+        prizes_cost = self.get_user().prizes_cost
+        if prizes_names[0] is not None and prizes_cost[0] is not None:
+            length = 3
+            if length == len(prizes_cost) and length == len(prizes_names):
+                for i in range(length):
+                    self.stores[i].update_prize(prizes_names[i], prizes_cost[i])
+
     def show_store(self):
+        self.update_store()
         self.store_mission(True)
 
     def closeEvent(self, event):
@@ -421,10 +437,19 @@ class MainWindow(Window):
         a, b = self.recommended_mission()
         self.missions[0].update_content(a)
         self.missions[1].update_content(b)
+
+        self.update_store()
+
         self.update()
 
     def get_user(self):
         return self._manager.get_user()
+
+    def prize_consumed(self, cost):
+        if self.get_user().currency is not None and int(self.get_user().currency) >= cost:
+            self.get_user().currency = str(int(self.get_user().currency) - cost)
+            self.get_user().update_information_to_db()
+            self.user_info_changed.emit()
 
     def mission_clicked(self, mission):
         if mission is not None:
@@ -456,6 +481,7 @@ class SideWindow(Window):
         self.owner_window.minimized.connect(lambda: self.setWindowState(Qt.WindowMinimized))
         self.owner_window.maximized.connect(lambda: self.setWindowState(Qt.WindowNoState))
         self.owner_window.moved.connect(self.set_location)
+        self.owner_window.user_info_changed.connect(self.update_self)
         self.set_location()
         self.setFixedSize(300, 742)
 
@@ -507,6 +533,13 @@ class SideWindow(Window):
     def get_user(self):
         return self.owner_window.get_user()
 
+    def update_self(self):
+        self.get_user().pull_information()
+        self.username_data.set_content(self.get_user().get_nickname())
+        self.success_rate_data.set_content(self.get_user().get_other_information("CU"))
+        self.finished_mission_data.set_content(self.get_user().get_other_information("MA"))
+        self.unit_time_data.set_content(self.get_user().get_other_information("UT"))
+
 
 class SettingWindow(Window):
     def __init__(self, manager):
@@ -545,8 +578,34 @@ class SettingWindow(Window):
         overall_layout.addWidget(line)
 
         prizes_hint = Labels("You may set your prizes below: ")
+        self.prizes_name_holder1 = InputLine()
+        self.prizes_name_holder2 = InputLine()
+        self.prizes_name_holder3 = InputLine()
+        self.prizes_cost_holder1 = InputLine()
+        self.prizes_cost_holder2 = InputLine()
+        self.prizes_cost_holder3 = InputLine()
+        self.set_prize_original()
+
+        prizes_layout_overall = QVBoxLayout()
+        prizes1_layout = QHBoxLayout()
+        prizes2_layout = QHBoxLayout()
+        prizes3_layout = QHBoxLayout()
+        prizes1_layout.addWidget(self.prizes_name_holder1)
+        prizes1_layout.addWidget(Labels(": "))
+        prizes1_layout.addWidget(self.prizes_cost_holder1)
+        prizes2_layout.addWidget(self.prizes_name_holder2)
+        prizes2_layout.addWidget(Labels(": "))
+        prizes2_layout.addWidget(self.prizes_cost_holder2)
+        prizes3_layout.addWidget(self.prizes_name_holder3)
+        prizes3_layout.addWidget(Labels(": "))
+        prizes3_layout.addWidget(self.prizes_cost_holder3)
+        prizes_layout_overall.addLayout(prizes1_layout)
+        prizes_layout_overall.addLayout(prizes2_layout)
+        prizes_layout_overall.addLayout(prizes3_layout)
+        prizes_layout_overall.setAlignment(Qt.AlignTop)
 
         overall_layout.addWidget(prizes_hint)
+        overall_layout.addLayout(prizes_layout_overall)
 
         buttons_layout = QHBoxLayout()
         self.buttons_ok = Buttons("OK", self.ok_event)
@@ -563,14 +622,33 @@ class SettingWindow(Window):
         event.accept()
 
     def ok_event(self):
-        self._manager.get_user().update_local_information([self.nick_name_holder.text(),
-                                                           self.unit_time_holder.text(),
-                                                           None],
-                                                          True)
-        self.username_tag.setText("Successfully update the settings! ")
+        if self._manager.set_tag() is WindowType.MAIN:
+            prize_names = [self.prizes_name_holder1.text(), self.prizes_name_holder2.text(), self.prizes_name_holder3.text()]
+            prize_costs = [self.prizes_cost_holder1.text(), self.prizes_cost_holder2.text(), self.prizes_cost_holder3.text()]
+            self._manager.get_user().prizes = prize_names
+            self._manager.get_user().prizes_cost = prize_costs
+
+            self._manager.get_user().update_local_information([self.nick_name_holder.text(),
+                                                               self.unit_time_holder.text(),
+                                                               None],
+                                                              True)
+
+            self.username_tag.setText("Successfully update the settings! ")
 
     def cancel_event(self):
+        if self._manager.set_tag() is WindowType.MAIN:
+            self._manager.window.mission_moved.emit()
         self.close()
+
+    def set_prize_original(self):
+        temp1 = self._manager.get_user().prizes
+        temp2 = self._manager.get_user().prizes_cost
+        self.prizes_name_holder1.setText(temp1[0])
+        self.prizes_name_holder2.setText(temp1[1])
+        self.prizes_name_holder3.setText(temp1[2])
+        self.prizes_cost_holder1.setText(temp2[0])
+        self.prizes_cost_holder2.setText(temp2[1])
+        self.prizes_cost_holder3.setText(temp2[2])
 
 
 class NewMissionMessageBox(Window):
@@ -806,34 +884,43 @@ class MissionButtons(CardsButton):
             self.mission_duration.setText(f"{0} unit time")
             self.mission_ddl.setText("U R Free")
         else:
+            self.mission = new_mission
             self.mission_name.setText(new_mission.mission_name)
             self.mission_duration.setText(f"{new_mission.mission_duration} unit time")
             self.mission_ddl.setText(new_mission.mission_ddl.toString())
         self.update()
 
-    def click_event(self):
-        """
-        Rewrite this function to bind any event to this button.
-        When rewriting, simply build the attempted commands and it will run as needed.
-        """
-        print(f"Start mission {self.mission_name}! ")
-
 
 class StoreButtons(CardsButton):
-    def __init__(self, prize_name="prize", prize_duration=1, prize_cost=1):
+    consume = pyqtSignal(int)
+
+    def __init__(self, prize_name="prize", prize_cost=1):
         super(StoreButtons, self).__init__()
-        self.setMinimumSize(150, 400)
 
         labels = QVBoxLayout()
-        self.mission_name = Labels(prize_name)
-        mission_duration = Labels(f"{prize_duration} unit time")
-        mission_ddl = Labels(f"Costs: {prize_cost}")
-        labels.addWidget(self.mission_name)
-        labels.addWidget(mission_duration)
-        labels.addWidget(mission_ddl)
+        self.prize_cost_data = prize_cost
+        self.prize_name = Labels(prize_name)
+        self.prize_cost = Labels(f"Costs: {prize_cost}")
+        labels.addWidget(self.prize_name)
+        labels.addWidget(self.prize_cost)
         labels.setAlignment(Qt.AlignHCenter)
 
         self.setLayout(labels)
+
+    def update_prize(self, prize_name="prize", prize_cost=1):
+        self.prize_name.set_content(prize_name)
+        self.prize_cost.set_content(prize_cost)
+        self.prize_cost_data = prize_cost
+
+    def click_event(self):
+        reply = QMessageBox.question(self, 'Message',
+                                     "Click yes to complete the buying", QMessageBox.Yes |
+                                     QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            self.consume.emit(int(self.prize_cost_data))
+        else:
+            pass
 
 
 class NewMissionButtons(CardsButton):
@@ -930,7 +1017,7 @@ class User:
         self.unit_time = None
         self.mission_accomplished = None
         self.prizes = None
-        self.prizes_times = None
+        self.prizes_cost = None
         self.currency = None
         self.mission = list()
 
@@ -947,10 +1034,10 @@ class User:
             self.mission_accomplished = temp[3]
             if temp[4] and temp[5] is not None:
                 self.prizes = temp[4].split(", ")
-                self.prizes_times = temp[5].split(", ")
+                self.prizes_cost = temp[5].split(", ")
             else:
                 self.prizes = [temp[4]]
-                self.prizes_times = [temp[5]]
+                self.prizes_cost = [temp[5]]
             self.currency = temp[6]
             return True
         else:
@@ -958,10 +1045,13 @@ class User:
 
     def pull_mission(self):
         temp = search_in_database(self.username, "BelongUserName", "Mission")
-        temp_result = list()
-        for information in temp:
-            temp_result.append(Mission(information))
-        self.mission = temp_result
+        if temp is not None:
+            temp_result = list()
+            for information in temp:
+                temp_result.append(Mission(information))
+            self.mission = temp_result
+        else:
+            self.mission = []
 
     def update_local_information(self, values, directly_to_db):
         self.nick_name = values[0]
@@ -979,10 +1069,30 @@ class User:
             self.update_information_to_db()
 
     def update_information_to_db(self):
-        update_existing_in_database(self.username, "UserName",
-                                    [self.nick_name, self.unit_time, self.mission_accomplished],
-                                    ["UserPreferredName", "UserUnitTime", "UserMissionAccomplished"],
-                                    "UserInformation")
+        if self.prizes_cost is not None and self.prizes is not None:
+            temp1 = ""
+            temp2 = ""
+            for i in self.prizes:
+                temp1 += str(i) + ", "
+            for i in self.prizes_cost:
+                temp2 += str(i) + ", "
+            temp1 = temp1[0:-2]
+            temp2 = temp2[0:-2]
+            update_existing_in_database(self.username, "UserName",
+                                        [str(self.nick_name), str(self.unit_time),
+                                         temp1, temp2,
+                                         str(self.mission_accomplished), str(self.currency)],
+                                        ["UserPreferredName", "UserUnitTime",
+                                         "UserPrizeNames", "UserPrizeTimes",
+                                         "UserMissionAccomplished", "UserMoney"],
+                                        "UserInformation")
+        else:
+            update_existing_in_database(self.username, "UserName",
+                                        [str(self.nick_name), str(self.unit_time),
+                                         str(self.mission_accomplished), str(self.currency)],
+                                        ["UserPreferredName", "UserUnitTime",
+                                         "UserMissionAccomplished", "UserMoney"],
+                                        "UserInformation")
 
     def get_other_information(self, name):
         if name == "NN":  # Nick Name
@@ -1052,9 +1162,9 @@ def find_2_smallest(unsorted_list):
         elif unsorted_list[i] < smallest2:
             smallest2 = test
             smallest2_index = i
-    print(smallest1_index, smallest2_index)
     return smallest1_index, smallest2_index
 
 
 if __name__ == "__main__":
     app = Application()
+    print()

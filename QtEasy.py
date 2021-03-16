@@ -219,4 +219,4 @@ class ImportanceComboBox(QComboBox):
 
 
 if __name__ == '__main__':
-    print("The below is for test only. If you do not wish to test, you shouldn't see this piece of code. Go debug pls!")
+    pass

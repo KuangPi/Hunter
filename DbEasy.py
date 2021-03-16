@@ -25,24 +25,44 @@ def search_in_database(search_key, column_name, table_name, cell_name="*", datab
         return None  # NF stands for not founded.
 
 
-def insert_into_database(values, table_name, database_name="userdata.db"):
+def insert_into_database(values, table_name, column_name=None, database_name="userdata.db"):
     """
     :param values: list
     :param table_name:
     :param database_name:
+    :param column_name:
     :return:
     """
-    connection = _sqlite3.connect(database_name)
-    command = f"INSERT INTO {table_name} VALUES ("
-    for value in values:
-        if value is None:
-            command += "NULL"
-        elif isinstance(value, str):
-            command += f"'{value}'"
-        else:
-            command += str(value)
-        command += ", "
-    command = command[0:-2] + ")"
+    if column_name is None:
+        connection = _sqlite3.connect(database_name)
+        command = f"INSERT INTO {table_name} VALUES ("
+        for value in values:
+            if value is None:
+                command += "NULL"
+            elif isinstance(value, str):
+                command += f"'{value}'"
+            else:
+                command += str(value)
+            command += ", "
+        command = command[0:-2] + ")"
+    else:
+        connection = _sqlite3.connect(database_name)
+        command = f"INSERT INTO {table_name} ("
+        for column in column_name:
+            command += f"{column},"
+        command = command[0:-1]
+        command += ")"
+        command += "\nVALUES ("
+        for value in values:
+            if value is None:
+                command += "NULL"
+            elif isinstance(value, str):
+                command += f"'{value}'"
+            else:
+                command += str(value)
+            command += ", "
+        command = command[0:-2] + ")"
+    print(database_name, command)
     connection.execute(command)
     connection.commit()
 
@@ -119,4 +139,4 @@ def delete_records_in_database(primary_key, key_column, table_name, database_nam
 
 
 if __name__ == "__main__":
-    print(search_in_database("1", "UserName", "UserInformation"))
+    pass
